@@ -1,0 +1,467 @@
+@import "tailwindcss";
+
+:root {
+  /* Arcade palette: a deep violet cabinet with a warm gold for anything
+     you win. Inherited from the games' own screens rather than invented,
+     so the hub and the boards already agree. */
+  --background: #1b1040;
+  --foreground: #ffffff;
+  --color-violet: #4b2ea8;
+  --color-violet-deep: #2b1a5e;
+  --color-gold: #ffc94d;
+  --color-gold-dark: #e8a825;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-violet: var(--color-violet);
+  --color-violet-deep: var(--color-violet-deep);
+  --color-gold: var(--color-gold);
+  --color-gold-dark: var(--color-gold-dark);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
+}
+
+/* Removes the ~300ms a browser holds every tap for in case it becomes a
+   double-tap zoom. These games are played by tapping fast. */
+button,
+a,
+[role="button"],
+label {
+  touch-action: manipulation;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  letter-spacing: -0.006em;
+  /* A game you shake the phone at should never bounce or pull-to-refresh. */
+  overscroll-behavior: none;
+}
+
+.font-heading,
+h1,
+h2,
+h3 {
+  letter-spacing: -0.022em;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Scores and counters must not shift width as they tick. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* The boards are drawn in their own user units — the dartboard has a radius
+   of 1 and labels at font-size 0.13 — so glyph metrics have to stay
+   fractional and be scaled afterwards. Under the default hinting every
+   advance rounds to zero and two-digit numbers stack on one spot. */
+svg text {
+  text-rendering: geometricPrecision;
+  letter-spacing: normal;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.25s ease-out;
+}
+
+
+@keyframes float-heart {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(4deg);
+  }
+}
+
+.animate-float {
+  animation: float-heart 3.2s ease-in-out infinite;
+}
+
+
+/* Friendly button: soft shadow that eases on tap, no hard outline */
+.btn-pop {
+  position: relative;
+  box-shadow: 0 6px 16px -8px rgba(122, 48, 62, 0.34);
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+@media (hover: hover) {
+  .btn-pop:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -8px rgba(122, 48, 62, 0.38);
+    filter: saturate(1.06);
+  }
+}
+
+.btn-pop:active {
+  transform: scale(0.97) translateY(1px);
+  box-shadow: 0 3px 8px -6px rgba(122, 48, 62, 0.3);
+}
+
+
+/* Baseline tap feedback for every plain <button> that doesn't opt into its
+   own — most already carry a Tailwind active:scale-* utility, and a class
+   selector always outranks this bare element one, so those keep their own
+   value untouched. This just stops the ~2/3 of buttons with no active
+   state at all from feeling unresponsive to a tap. */
+button:not(:disabled) {
+  transition: transform 0.12s ease;
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* Keyboard-only focus ring — invisible on touch/mouse (:focus-visible
+   skips clicks/taps), but the app is also opened on desktop, where
+   nothing currently marks which control Tab lands on. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-hot) 70%, white);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Opt-out for a control whose wrapper already draws the focus treatment —
+   otherwise you get two rings, one inside the other, which reads as a
+   validation error rather than "this is focused". These declarations sit
+   outside Tailwind's cascade layer, so an unlayered rule is needed to beat
+   them; a `focus-visible:outline-none` utility would lose. */
+.focus-ring-none:focus-visible {
+  outline: none;
+}
+
+
+/* Hide scrollbars on horizontal quick-action rows */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* --- Tenis virtual ------------------------------------------------------ */
+
+/* The court is drawn on a perspective-tilted plane; every sprite standing on
+   it counter-rotates by the same angle so it reads as upright instead of
+   lying flat on the ground. */
+@keyframes tennis-idle {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-5px) scaleY(1.03);
+  }
+}
+
+.tennis-figure {
+  animation: tennis-idle 1.7s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes tennis-swing {
+  0% {
+    transform: rotate(-15deg);
+  }
+  30% {
+    transform: rotate(-105deg);
+  }
+  60% {
+    transform: rotate(35deg);
+  }
+  100% {
+    transform: rotate(-15deg);
+  }
+}
+
+/* Both arms pivot at the shoulder joint, so they stay attached to the torso at
+   every angle — swinging, or punched straight up in a celebration. The
+   percentages resolve against the character's own nested <svg> viewport
+   (60x84 units), where the shoulders sit at y≈36. */
+.tennis-arm {
+  transform-origin: 78% 43%;
+  transform: rotate(-15deg);
+}
+
+.tennis-arm-left {
+  transform-origin: 22% 43%;
+}
+
+.tennis-sprite.is-swinging .tennis-arm {
+  animation: tennis-swing 0.36s cubic-bezier(0.3, 0.9, 0.4, 1);
+}
+
+@keyframes tennis-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+.tennis-sprite.is-celebrating .tennis-figure {
+  animation: tennis-hop 0.42s ease-in-out infinite;
+}
+
+/* Chasing the ball: a quicker bob with a bit of lean, so sideways movement
+   reads as running rather than sliding. */
+@keyframes tennis-run {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-7px) rotate(-3.5deg);
+  }
+  75% {
+    transform: translateY(-7px) rotate(3.5deg);
+  }
+}
+
+.tennis-sprite.is-running .tennis-figure {
+  animation: tennis-run 0.32s linear infinite;
+}
+
+/* Both arms punch the air on a won point. */
+@keyframes tennis-cheer-right {
+  0%,
+  100% {
+    transform: rotate(-155deg);
+  }
+  50% {
+    transform: rotate(-195deg);
+  }
+}
+
+@keyframes tennis-cheer-left {
+  0%,
+  100% {
+    transform: rotate(155deg);
+  }
+  50% {
+    transform: rotate(195deg);
+  }
+}
+
+.tennis-sprite.is-celebrating .tennis-arm {
+  animation: tennis-cheer-right 0.42s ease-in-out infinite;
+}
+
+.tennis-sprite.is-celebrating .tennis-arm-left {
+  animation: tennis-cheer-left 0.42s ease-in-out infinite;
+}
+
+/* Lost point: a short stomp-and-shake. */
+@keyframes tennis-angry {
+  0%,
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+  15% {
+    transform: translateX(-6px) translateY(2px);
+  }
+  35% {
+    transform: translateX(6px) translateY(0);
+  }
+  55% {
+    transform: translateX(-5px) translateY(3px);
+  }
+  75% {
+    transform: translateX(5px) translateY(0);
+  }
+}
+
+.tennis-sprite.is-angry .tennis-figure {
+  animation: tennis-angry 0.3s linear 4;
+}
+
+.tennis-emote-happy,
+.tennis-emote-angry {
+  opacity: 0;
+}
+
+@keyframes tennis-emote-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+.tennis-sprite.is-celebrating .tennis-emote-happy,
+.tennis-sprite.is-angry .tennis-emote-angry {
+  opacity: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tennis-emote-pop 0.45s ease-out infinite;
+}
+
+/* Burst drawn at the ball the instant a racket connects. */
+@keyframes tennis-impact {
+  0% {
+    transform: scale(0.35);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.tennis-impact {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.tennis-impact.is-hit {
+  animation: tennis-impact 0.34s ease-out;
+}
+
+@keyframes arcade-load {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-arcade-load {
+  animation: arcade-load var(--load-duration, 2600ms) steps(24, end) forwards;
+}
+
+@keyframes arcade-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.animate-arcade-blink {
+  animation: arcade-blink 0.9s steps(1, end) infinite;
+}
+
+@keyframes tennis-ball-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tennis-ball-spin {
+  animation: tennis-ball-spin 0.5s linear infinite;
+}
+
+
+@keyframes dart-pop {
+  0% {
+    transform: translateY(0) scale(0.55);
+    opacity: 0;
+  }
+  22% {
+    transform: translateY(-0.06px) scale(1.12);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-0.34px) scale(1);
+    opacity: 0;
+  }
+}
+
+.dart-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dart-pop 1.05s ease-out forwards;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .petal,
+  .petal > img,
+  .animate-floral-sway,
+  .animate-bloom-spin,
+  .animate-heart-beat,
+  .animate-twinkle,
+  .animate-bloom-glow,
+  .text-gradient-brand,
+  .animate-float,
+  .animate-wiggle-in,
+  .wiggle,
+  .skeleton-shimmer,
+  .animate-bg-pan,
+  .animate-dice-tumble,
+  .tennis-figure,
+  .tennis-sprite.is-swinging .tennis-arm,
+  .tennis-sprite.is-celebrating .tennis-figure,
+  .tennis-sprite.is-running .tennis-figure,
+  .tennis-sprite.is-celebrating .tennis-arm,
+  .tennis-sprite.is-celebrating .tennis-arm-left,
+  .tennis-sprite.is-angry .tennis-figure,
+  .tennis-sprite.is-celebrating .tennis-emote-happy,
+  .tennis-sprite.is-angry .tennis-emote-angry,
+  .tennis-impact.is-hit,
+  .tennis-ball-spin,
+  .dart-pop,
+  .animate-arcade-blink {
+    animation: none;
+  }
+  /* The loading bar still has to reach the end, just without the stepping. */
+  .animate-arcade-load {
+    animation-duration: var(--load-duration, 2600ms);
+    animation-timing-function: linear;
+  }
+}
