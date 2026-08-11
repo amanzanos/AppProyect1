@@ -2,6 +2,7 @@
 
 import { Check, Loader2, MonitorSmartphone, Play, X } from "lucide-react";
 import { usePlayers } from "@/lib/players";
+import { firebaseConfigured } from "@/lib/firebase";
 
 /**
  * Deliberately anonymous: the two codes are told apart by the colour of their
@@ -66,6 +67,38 @@ export default function GameLobby({
 }: GameLobbyProps) {
   const { players } = usePlayers();
   const bothReady = joined1 && joined2;
+
+  // With no Firebase project behind the build the codes are worthless: the
+  // phones can scan them and nothing will ever happen. Saying so beats a
+  // spinner that never resolves.
+  if (!firebaseConfigured) {
+    return (
+      <div
+        className="relative flex h-full w-full flex-col items-center justify-center gap-4 px-8 text-center text-white"
+        style={{ background }}
+      >
+        <button
+          onClick={onExit}
+          aria-label="Salir"
+          className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 active:scale-95"
+        >
+          <X size={20} />
+        </button>
+        <span className="text-5xl">🔌</span>
+        <h1 className="font-heading text-2xl font-black">Modo a 2 no disponible</h1>
+        <p className="max-w-[30ch] text-sm leading-snug text-white/70">
+          Esta versión no tiene servidor configurado, así que los móviles no pueden conectarse con la
+          pantalla. Los juegos de un jugador funcionan igual.
+        </p>
+        <button
+          onClick={onExit}
+          className="mt-2 rounded-full bg-white px-8 py-3.5 font-heading font-black text-neutral-900 active:scale-95"
+        >
+          Volver
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

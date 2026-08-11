@@ -2,7 +2,7 @@
 
 import { doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
+import { db, firebaseConfigured } from "@/lib/firebase";
 
 /**
  * Shared plumbing for the games where a screen is the board and the phones are
@@ -37,7 +37,13 @@ function controlDoc(collection: string, roomId: string, player: PlayerSlot) {
   return doc(db, collection, roomId, "controls", `p${player}`);
 }
 
+/** Every write goes through here, so one check covers all four games. */
+function offline() {
+  return !firebaseConfigured;
+}
+
 export async function createRoom(collection: string, roomId: string, blank: object, players?: object) {
+  if (offline()) return;
   await setDoc(doc(db, collection, roomId), {
     createdAt: Date.now(),
     player1Joined: false,
@@ -54,12 +60,14 @@ export async function createRoom(collection: string, roomId: string, blank: obje
 }
 
 export async function joinRoom(collection: string, roomId: string, player: PlayerSlot, blank: object) {
+  if (offline()) return;
   await setDoc(controlDoc(collection, roomId, player), { at: 0, joined: true, ...blank });
   await updateDoc(doc(db, collection, roomId), { [`player${player}Joined`]: true });
 }
 
 /** One write per input. Keep these well under a write a second per player. */
 export async function sendControl(collection: string, roomId: string, player: PlayerSlot, payload: object) {
+  if (offline()) return;
   await setDoc(controlDoc(collection, roomId, player), { at: Date.now(), joined: true, ...payload });
 }
 
@@ -85,7 +93,7 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
   const [room, setRoom] = useState<RoomState<C> | null>(null);
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !firebaseConfigured) return;
     const state: RoomState<C> = { createdAt: 0, joined1: false, joined2: false, turn: 1, round: -1, p1: null, p2: null };
     const publish = () => setRoom({ ...state });
 
@@ -127,10 +135,12 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
 
 /** Announce whose go it is. Called by the screen between darts, not per frame. */
 export async function setTurn(collection: string, roomId: string, turn: PlayerSlot) {
+  if (offline()) return;
   await updateDoc(doc(db, collection, roomId), { turn });
 }
 
 /** Announce which round is live. One write per question, not per frame. */
 export async function setRound(collection: string, roomId: string, round: number) {
+  if (offline()) return;
   await updateDoc(doc(db, collection, roomId), { round });
 }

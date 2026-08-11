@@ -2,7 +2,7 @@
 
 import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
+import { db, firebaseConfigured } from "@/lib/firebase";
 import { DEFAULT_PLAYERS, type Players } from "@/lib/players";
 
 /**
@@ -17,7 +17,7 @@ export function useRoomPlayers(collection: string, roomId: string | null): Playe
   const [players, setPlayers] = useState<Players>(DEFAULT_PLAYERS);
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId || !firebaseConfigured) return;
     return onSnapshot(doc(db, collection, roomId), (snap) => {
       const stored = (snap.data() as { players?: Partial<Players> | null } | undefined)?.players;
       if (!stored) return;
