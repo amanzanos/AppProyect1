@@ -92,6 +92,12 @@ que siempre tienen relleno. Publicar con un ID real sin inventario se ve
 exactamente igual que un fallo, así que el respaldo es el que siempre muestra
 algo.
 
+Antes de inicializar el SDK, `load()` pasa por el flujo de consentimiento de
+Google (UMP): pregunta si hace falta pedirlo según dónde esté el dispositivo
+—en España sí— y, si hace falta, muestra el formulario. Ningún anuncio se pide
+hasta que eso se resuelve. No hay forma de probar esto de verdad sin un
+dispositivo real fuera de este entorno.
+
 ## Publicar en Google Play
 
 El .apk es una carcasa fina alrededor del sitio desplegado. Un export estático
@@ -109,16 +115,36 @@ npm run android:open               # abre Android Studio para firmar y generar e
 
 Hace falta Android Studio en tu máquina — esto no se puede hacer desde aquí.
 
-Lo que Google pide y no está hecho todavía:
+### Lo que ya está hecho
 
-- [ ] Cuenta de desarrollador de Google Play (25 $, pago único)
-- [ ] Política de privacidad en una URL pública (obligatoria en cuanto hay AdMob)
-- [ ] Formulario de seguridad de los datos (AdMob recoge identificador de
-      publicidad, hay que declararlo)
-- [ ] Consentimiento GDPR/UMP — obligatorio para usuarios en la UE, y vosotros
-      estáis en España
-- [ ] Ficha de tienda: icono 512×512, gráfico 1024×500, capturas
-- [ ] Clasificación por edades
+- [x] **Política de privacidad**, en `/privacidad` dentro de la propia app —
+      pública en cuanto está desplegada, sin sitio aparte que mantener. La URL
+      completa es `https://tu-dominio/privacidad`.
+- [x] **Consentimiento GDPR/UMP**, en `src/lib/ads.ts` — se pide antes de
+      inicializar el SDK de anuncios, no después.
+- [x] **Gráficos de la ficha**: `store/icon-512.png` y
+      `store/feature-graphic-1024x500.png`, con la mascota y la paleta de la
+      propia app. Sirven para empezar; si quieres otro estilo, es fácil pedir
+      una versión distinta.
+
+### Lo que falta, y solo lo puedes hacer tú
+
+- [ ] Cuenta de desarrollador de Google Play (25 $, pago único) — pide una
+      tarjeta, no lo puedo hacer por ti.
+- [ ] Los pasos de Android Studio de arriba (`cap add android`, firmar, generar
+      el `.aab`).
+- [ ] **Formulario de seguridad de los datos**, en la propia consola de Play.
+      Con lo que hay implementado, las respuestas correctas son: se recoge el
+      *identificador de publicidad* (por AdMob), no se recoge ningún otro dato
+      personal, los datos no se comparten con terceros más allá del propio
+      AdMob, y no hay cifrado en tránsito que declarar porque no viaja ningún
+      dato propio del usuario.
+- [ ] **Clasificación por edades** — el cuestionario de la consola. Responde
+      que no hay contenido violento, sexual, ni de apuestas; que hay anuncios;
+      y que no se recoge ubicación ni datos de contacto.
+- [ ] **Capturas de pantalla** — al menos 2, hasta 8, de un móvil real
+      corriendo la app. Los gráficos de arriba ya cubren el icono y el
+      encabezado.
 
 ## Estructura
 

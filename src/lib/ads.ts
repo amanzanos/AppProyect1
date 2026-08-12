@@ -37,7 +37,16 @@ interface AdMobLike {
   hideBanner(): Promise<void>;
   prepareInterstitial(options: Record<string, unknown>): Promise<void>;
   showInterstitial(): Promise<void>;
+  requestConsentInfo(options?: Record<string, unknown>): Promise<ConsentInfo>;
+  showConsentForm(): Promise<ConsentInfo>;
 }
+
+interface ConsentInfo {
+  status: "REQUIRED" | "NOT_REQUIRED" | "OBTAINED" | "UNKNOWN";
+  isConsentFormAvailable?: boolean;
+}
+
+let consent: ConsentInfo | null = null;
 
 function isNative() {
   if (typeof window === "undefined") return false;
@@ -56,6 +65,34 @@ function unitId(kind: "banner" | "interstitial") {
   return env || test;
 }
 
+/**
+ * Google's consent flow (UMP), required before any personalised or
+ * non-personalised ad shows to a user in the EEA, the UK or Switzerland — and
+ * Spain is one of those. `requestConsentInfo` itself decides, from the
+ * device's location, whether a form is even needed; outside that region it
+ * comes back NOT_REQUIRED immediately and nothing is shown.
+ *
+ * This runs before `initialize()`, not after: initialising the SDK first and
+ * asking for consent second is the mistake that gets an app rejected, because
+ * it means ad requests could theoretically fire before consent is settled.
+ */
+async function ensureConsent(sdk: AdMobLike) {
+  try {
+    consent = await sdk.requestConsentInfo();
+    if (consent.status === "REQUIRED" && consent.isConsentFormAvailable) {
+      consent = await sdk.showConsentForm();
+    }
+  } catch {
+    // No network, or the form failed to load. Leave `consent` as whatever it
+    // last was — `canServeAds()` below treats unknown as "don't show".
+  }
+}
+
+/** Whether current consent state allows a request to be made at all. */
+function canServeAds() {
+  return consent?.status === "OBTAINED" || consent?.status === "NOT_REQUIRED";
+}
+
 async function load() {
   if (!ENABLED || !isNative() || admob) return;
   if (!ready) {
@@ -66,8 +103,10 @@ async function load() {
         // specifier fails the build wherever the plugin isn't installed.
         const specifier = "@capacitor-community/" + "admob";
         const mod = (await import(/* webpackIgnore: true */ specifier)) as { AdMob: AdMobLike };
-        admob = mod.AdMob;
-        await admob.initialize({ initializeForTesting: process.env.NEXT_PUBLIC_ADS_TEST === "1" });
+        const sdk = mod.AdMob;
+        await ensureConsent(sdk);
+        await sdk.initialize({ initializeForTesting: process.env.NEXT_PUBLIC_ADS_TEST === "1" });
+        admob = sdk;
       } catch {
         // Plugin missing (web build, or a shell built without it). Silence is
         // right here: the game must keep working with no ads at all.
@@ -81,7 +120,7 @@ async function load() {
 /** A banner along the bottom. Only ever on the hub, never over a game. */
 export async function showBanner() {
   await load();
-  if (!admob) return;
+  if (!admob || !canServeAds()) return;
   try {
     await admob.showBanner({
       adId: unitId("banner"),
@@ -110,7 +149,7 @@ export async function hideBanner() {
  */
 export async function showInterstitial() {
   await load();
-  if (!admob) return;
+  if (!admob || !canServeAds()) return;
 
   const now = Date.now();
   if (now - lastShown < MIN_GAP_MS) return;

@@ -193,6 +193,10 @@ export default function GamesPage() {
         <Pencil size={11} /> Jugadores para el modo a 2
       </button>
 
+      <Link href="/privacidad" className="mx-5 mt-4 block pb-2 text-[11px] font-semibold text-white/30">
+        Privacidad
+      </Link>
+
       {editing && <PlayerSetup players={players} onChange={update} onDone={() => setEditing(false)} />}
     </main>
   );
