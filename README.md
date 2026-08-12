@@ -41,9 +41,31 @@ cp .env.example .env.local   # y rellena con tu proyecto de Firebase
 npm run dev
 ```
 
-Necesitas un proyecto de Firebase con **Firestore** y **autenticación anónima**
-activada. El plan gratuito (Spark) sobra: una partida son unas pocas decenas de
-escrituras.
+### Firebase
+
+Solo hace falta para el modo a dos. Los juegos de un jugador no lo tocan, y la
+app arranca perfectamente sin él (el lobby a 2 avisa de que no está disponible).
+
+1. **console.firebase.google.com** → *Crear proyecto*. Puedes decir que no a
+   Google Analytics, no se usa.
+2. **Compilación → Firestore Database → Crear**. Modo producción, y como región
+   `eur3 (europe-west)` si estás en España — es la más cercana y baja la latencia
+   entre el móvil y la pantalla, que aquí se nota.
+3. **Compilación → Authentication → Comenzar → Anónimo → Habilitar.** Sin esto
+   las reglas de abajo rechazan todo. La app no pide cuenta a nadie: la sesión
+   anónima es invisible y solo sirve para que las reglas puedan distinguir a un
+   jugador de un desconocido llamando a la API.
+4. **Firestore → Reglas**: pega el contenido de `firestore.rules` y publica.
+5. **Configuración del proyecto (⚙) → Tus aplicaciones → Web (`</>`)**. Regístrala
+   y copia los cinco valores de `firebaseConfig` a tu `.env.local`, y a las
+   variables de entorno de Vercel.
+
+El plan gratuito (Spark) sobra de largo: una partida son unas pocas decenas de
+escrituras, y los récords ni siquiera pasan por aquí.
+
+Las salas se quedan en la base de datos para siempre. No molestan —son diminutas—
+pero si algún día se acumulan, en Firestore → TTL se pone una política sobre el
+campo `createdAt` y se borran solas.
 
 Para probar de verdad hace falta la pantalla en un sitio y los móviles en otro,
 así que el móvil tiene que poder alcanzar tu servidor de desarrollo — un túnel

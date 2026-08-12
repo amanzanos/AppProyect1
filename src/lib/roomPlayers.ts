@@ -3,6 +3,7 @@
 import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db, firebaseConfigured } from "@/lib/firebase";
+import { ensureSignedIn } from "@/lib/data/signIn";
 import { DEFAULT_PLAYERS, type Players } from "@/lib/players";
 
 /**
@@ -18,14 +19,23 @@ export function useRoomPlayers(collection: string, roomId: string | null): Playe
 
   useEffect(() => {
     if (!roomId || !firebaseConfigured) return;
-    return onSnapshot(doc(db, collection, roomId), (snap) => {
-      const stored = (snap.data() as { players?: Partial<Players> | null } | undefined)?.players;
-      if (!stored) return;
-      setPlayers({
-        1: { ...DEFAULT_PLAYERS[1], ...stored[1] },
-        2: { ...DEFAULT_PLAYERS[2], ...stored[2] },
+    let live = true;
+    let unsub: (() => void) | null = null;
+    void ensureSignedIn().then(() => {
+      if (!live) return;
+      unsub = onSnapshot(doc(db, collection, roomId), (snap) => {
+        const stored = (snap.data() as { players?: Partial<Players> | null } | undefined)?.players;
+        if (!stored) return;
+        setPlayers({
+          1: { ...DEFAULT_PLAYERS[1], ...stored[1] },
+          2: { ...DEFAULT_PLAYERS[2], ...stored[2] },
+        });
       });
     });
+    return () => {
+      live = false;
+      unsub?.();
+    };
   }, [collection, roomId]);
 
   return players;

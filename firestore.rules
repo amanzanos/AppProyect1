@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Reglas de Firestore para Blopy.
+//
+// Pégalas en Firebase Console → Firestore → Reglas → Publicar.
+//
+// El modelo es a propósito muy simple: no hay cuentas ni datos personales, solo
+// salas de partida efímeras que se identifican con un código de cuatro letras.
+// Lo único que hay que impedir es que cualquiera con un navegador pueda escribir
+// en la base de datos y agotar la cuota gratuita.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Las cuatro colecciones de salas, y nada más. Todo lo que no esté aquí
+    // queda denegado por defecto, así que una colección nueva no se abre sola
+    // por olvido.
+    match /{game}/{room} {
+      allow read, write: if isPlayer()
+                         && game in ['tennisGames', 'dartsGames', 'bowlingGames', 'quizGames']
+                         && isRoomCode(room);
+
+      // Un documento por jugador: es lo que evita que los dos móviles se
+      // bloqueen entre ellos al escribir en el mismo sitio.
+      match /controls/{slot} {
+        allow read, write: if isPlayer()
+                           && game in ['tennisGames', 'dartsGames', 'bowlingGames', 'quizGames']
+                           && isRoomCode(room)
+                           && slot in ['p1', 'p2'];
+      }
+    }
+
+    // Sesión anónima: no pide nada al jugador, pero deja fuera a quien llame a
+    // la API a pelo desde fuera de la app.
+    function isPlayer() {
+      return request.auth != null;
+    }
+
+    // Cuatro caracteres del alfabeto de los códigos (sin 0/O/1/I, que se
+    // confunden leídos en una pantalla). Corta de raíz que alguien cree
+    // millones de documentos con nombres arbitrarios.
+    function isRoomCode(code) {
+      return code.matches('^[A-HJ-NP-Z2-9]{4}$');
+    }
+  }
+}

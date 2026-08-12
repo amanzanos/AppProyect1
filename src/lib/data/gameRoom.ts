@@ -3,6 +3,7 @@
 import { doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db, firebaseConfigured } from "@/lib/firebase";
+import { ensureSignedIn } from "@/lib/data/signIn";
 
 /**
  * Shared plumbing for the games where a screen is the board and the phones are
@@ -44,6 +45,7 @@ function offline() {
 
 export async function createRoom(collection: string, roomId: string, blank: object, players?: object) {
   if (offline()) return;
+  await ensureSignedIn();
   await setDoc(doc(db, collection, roomId), {
     createdAt: Date.now(),
     player1Joined: false,
@@ -61,6 +63,7 @@ export async function createRoom(collection: string, roomId: string, blank: obje
 
 export async function joinRoom(collection: string, roomId: string, player: PlayerSlot, blank: object) {
   if (offline()) return;
+  await ensureSignedIn();
   await setDoc(controlDoc(collection, roomId, player), { at: 0, joined: true, ...blank });
   await updateDoc(doc(db, collection, roomId), { [`player${player}Joined`]: true });
 }
@@ -68,6 +71,7 @@ export async function joinRoom(collection: string, roomId: string, player: Playe
 /** One write per input. Keep these well under a write a second per player. */
 export async function sendControl(collection: string, roomId: string, player: PlayerSlot, payload: object) {
   if (offline()) return;
+  await ensureSignedIn();
   await setDoc(controlDoc(collection, roomId, player), { at: Date.now(), joined: true, ...payload });
 }
 
@@ -94,11 +98,24 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
 
   useEffect(() => {
     if (!roomId || !firebaseConfigured) return;
+    // Captured, because the narrowing above does not reach into `subscribe`:
+    // that function could in principle be called later, when roomId is null
+    // again.
+    const room = roomId;
     const state: RoomState<C> = { createdAt: 0, joined1: false, joined2: false, turn: 1, round: -1, p1: null, p2: null };
     const publish = () => setRoom({ ...state });
 
-    const unsubs = [
-      onSnapshot(doc(db, collection, roomId), (snap) => {
+    // Subscribing before the anonymous sign-in lands gets a terminal
+    // permission-denied that kills the listener for good — it does not retry.
+    let live = true;
+    let unsubs: (() => void)[] = [];
+    void ensureSignedIn().then(() => {
+      if (live) unsubs = subscribe();
+    });
+
+    function subscribe() {
+      return [
+      onSnapshot(doc(db, collection, room), (snap) => {
         const d = snap.data() as
           | { createdAt?: number; player1Joined?: boolean; player2Joined?: boolean; turn?: PlayerSlot; round?: number }
           | undefined;
@@ -111,7 +128,7 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
         publish();
       }),
       ...([1, 2] as const).map((p) =>
-        onSnapshot(controlDoc(collection, roomId, p), (snap) => {
+        onSnapshot(controlDoc(collection, room, p), (snap) => {
           const d = snap.data() as C | undefined;
           if (!d) return;
           const latest = d.at > 0 ? d : null;
@@ -125,9 +142,13 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
           publish();
         })
       ),
-    ];
+      ];
+    }
 
-    return () => unsubs.forEach((u) => u());
+    return () => {
+      live = false;
+      unsubs.forEach((u) => u());
+    };
   }, [collection, roomId]);
 
   return room;
@@ -136,11 +157,13 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
 /** Announce whose go it is. Called by the screen between darts, not per frame. */
 export async function setTurn(collection: string, roomId: string, turn: PlayerSlot) {
   if (offline()) return;
+  await ensureSignedIn();
   await updateDoc(doc(db, collection, roomId), { turn });
 }
 
 /** Announce which round is live. One write per question, not per frame. */
 export async function setRound(collection: string, roomId: string, round: number) {
   if (offline()) return;
+  await ensureSignedIn();
   await updateDoc(doc(db, collection, roomId), { round });
 }
