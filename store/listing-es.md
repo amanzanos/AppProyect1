@@ -15,10 +15,15 @@ Como tener una Wii en casa: mueve el móvil, juega en la tele con quien quieras
 ## Descripción completa (máx. 4000 caracteres)
 
 ```
-Siete minijuegos, un dedo, cero esperas.
+La Wii que ya llevas en el bolsillo.
 
-Abre la app y estás jugando en dos segundos: sin cuentas, sin registro, sin
-tutoriales largos. Cada partida dura lo que dura un semáforo en rojo.
+Sin comprar consola, sin mandos que cargar: pones la partida en la tele (o
+el portátil, o el proyector) y cada uno juega con su propio móvil como
+mando, moviéndolo, apuntando, agitándolo. La misma sensación de sobremesa
+de siempre, con lo que ya tenéis en casa.
+
+Y para cuando sois pocos, o vais solos: cuatro minijuegos de un dedo, sin
+esperar a nadie.
 
 QUÉ HAY PARA JUGAR SOLO
 🐹 Topos — dales antes de que se escondan. Cuidado con las bombas.
@@ -29,13 +34,15 @@ QUÉ HAY PARA JUGAR SOLO
 Tres estrellas por juego, un récord que batir, y una racha de aciertos que
 sube el sonido y la puntuación cuanto mejor vas.
 
-PARA JUGAR CON ALGUIEN MÁS
-🎾 Tenis · 🎯 Dardos · 🎳 Bolos · 🧠 Quiz — la partida sale en una pantalla
-grande (una tele, un portátil) y cada jugador maneja con su propio móvil,
-escaneando un código QR. Ideal para el salón de casa.
+LA PARTE DE WII: JUGAR CON ALGUIEN MÁS
+🎾 Tenis · 🎯 Dardos · 🎳 Bolos · 🧠 Quiz — escaneas un código QR con el móvil
+y ya eres el mando de esa partida, mientras la pantalla grande enseña el
+juego a todos. Agita, apunta, lanza — el mismo gesto de siempre, con
+vuestros propios móviles.
 
 POR QUÉ BLOPY
 • Nada de registro ni cuentas — se abre y se juega.
+• Nada de consola ni mandos — el móvil que ya tenéis es suficiente.
 • Partidas de verdad cortas: perfecto para una espera, un descanso, un rato
   muerto.
 • Sonido y vibración en cada acierto, cada fallo, cada racha.
