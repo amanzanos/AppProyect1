@@ -1,12 +1,17 @@
-# Pique
+# Blopy
 
-Tenis, dardos, bolos y quiz para **dos móviles y una pantalla**. La partida se
-ve en la pantalla grande (una tele, un portátil, un proyector) y cada jugador
-maneja con el suyo escaneando un QR. No hay cuentas, no hay registro: se abre
-y se juega.
+Siete minijuegos para el móvil. Partidas de un minuto, un dedo, sin cuentas y
+sin registro: se abre y se juega.
 
-Sale de la zona de juegos de una app privada, extraída y desacoplada para
-poder publicarse por su cuenta.
+**Solo** — topos, Simón, el diferente y dardos. Se explican solos y el progreso
+son tres estrellas por juego.
+
+**A dos** — tenis, dardos, bolos y quiz, con la partida en una pantalla grande
+(una tele, un portátil, un proyector) y un móvil de mando por jugador, cada uno
+escaneando su QR.
+
+Sale de la zona de juegos de una app privada de pareja, extraída y desacoplada
+para poder publicarse por su cuenta.
 
 ---
 
@@ -76,7 +81,7 @@ bug de física sale en un despliegue, no en una revisión de tienda de varios d�
 ```bash
 npm run build                      # comprueba que la web está sana
 npx cap add android                # solo la primera vez
-PIQUE_URL=https://tu-dominio npm run android:sync
+BLOPY_URL=https://tu-dominio npm run android:sync
 npm run android:open               # abre Android Studio para firmar y generar el .aab
 ```
 
@@ -96,12 +101,18 @@ Lo que Google pide y no está hecho todavía:
 ## Estructura
 
 ```
-src/app/games/            una carpeta por juego: la pantalla y su /play (el mando)
+src/app/games/            una carpeta por juego
+  moles/ simon/ odd/      los de un jugador: una sola pantalla
+  darts/solo/             dardos en un dedo
+  darts/ tennis/ ...      los de dos: la pantalla, y /play que es el mando
 src/components/games/     tablero de dardos, bolera, ruleta, lobby, fin de partida
 src/components/tennis/    pista, personaje, pantalla de carga
+src/components/SoloOver   el final de una tirada: estrellas, récord, otra vez
 src/lib/                  física y reglas, sin nada de React
 src/lib/data/             salas de Firestore
 src/lib/ads.ts            la única puerta a los anuncios
+src/lib/juice.ts          sonido sintetizado, vibración y temblor de pantalla
+src/lib/solo.ts           estrellas y récords de un jugador
+src/lib/records.ts        récords del modo a dos
 src/lib/players.ts        los dos jugadores del dispositivo
-src/lib/records.ts        récords locales
 ```

@@ -137,7 +137,7 @@ export default function GamesPage() {
     >
       <header className="flex items-start justify-between gap-3 px-5 pt-[calc(1.5rem+env(safe-area-inset-top))]">
         <div>
-          <h1 className="font-heading text-4xl font-black tracking-tight text-white">Pique</h1>
+          <h1 className="font-heading text-4xl font-black tracking-tight text-white">Blopy</h1>
           <p className="mt-0.5 text-xs font-semibold text-violet-200/70">{ALL_GAMES.length} juegos, un dedo</p>
         </div>
         <button

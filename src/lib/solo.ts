@@ -56,7 +56,7 @@ interface SoloBest {
   runs: number;
 }
 
-const KEY = "pique-solo";
+const KEY = "blopy-solo";
 const BLANK: SoloBest = { score: 0, stars: 0, runs: 0 };
 
 type Store = Partial<Record<GameId, SoloBest>>;

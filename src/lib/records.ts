@@ -24,7 +24,7 @@ export interface PlayerStat {
 export type GameRecord = Record<PlayerSlot, PlayerStat>;
 
 const BLANK: PlayerStat = { best: 0, wins: 0, plays: 0 };
-const KEY = "pique-records";
+const KEY = "blopy-records";
 
 function blankRecord(): GameRecord {
   return { 1: { ...BLANK }, 2: { ...BLANK } };

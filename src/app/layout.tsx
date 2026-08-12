@@ -18,12 +18,12 @@ const body = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Pique — juegos para dos móviles y una pantalla",
+  title: "Blopy — minijuegos rápidos",
   description:
-    "Tenis, dardos, bolos y quiz para jugar en el sofá: la partida sale en la pantalla grande y cada uno maneja con su móvil.",
+    "Siete minijuegos de un dedo: topos, Simón, dardos y más. Partidas de un minuto, y modo a dos con un móvil cada uno.",
   manifest: "/manifest.json",
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Pique" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Blopy" },
 };
 
 export const viewport: Viewport = {

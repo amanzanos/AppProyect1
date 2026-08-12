@@ -24,7 +24,7 @@ const MATCHES_PER_INTERSTITIAL = 3;
 /** And never twice inside this window, however fast they replay. */
 const MIN_GAP_MS = 90_000;
 
-const COUNT_KEY = "pique-ad-count";
+const COUNT_KEY = "blopy-ad-count";
 
 let lastShown = 0;
 let admob: AdMobLike | null = null;

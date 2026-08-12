@@ -14,7 +14,7 @@
  * context is created on the first interaction and reused after that.
  */
 
-const MUTE_KEY = "pique-muted";
+const MUTE_KEY = "blopy-muted";
 
 let ctx: AudioContext | null = null;
 let muted: boolean | null = null;

@@ -39,7 +39,7 @@ export const DEFAULT_PLAYERS: Players = {
   2: { name: "Jugador 2", color: "#4b6ef5", emoji: "🐙" },
 };
 
-const KEY = "pique-players";
+const KEY = "blopy-players";
 
 export function loadPlayers(): Players {
   if (typeof window === "undefined") return DEFAULT_PLAYERS;

@@ -10,11 +10,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * instead of a store review that takes days.
  */
 const config: CapacitorConfig = {
-  appId: "com.amanzanos.pique",
-  appName: "Pique",
+  appId: "com.amanzanos.blopy",
+  appName: "Blopy",
   webDir: "public",
   server: {
-    url: process.env.PIQUE_URL || "https://pique.vercel.app",
+    url: process.env.BLOPY_URL || "https://blopy.vercel.app",
     cleartext: false,
   },
   android: {
