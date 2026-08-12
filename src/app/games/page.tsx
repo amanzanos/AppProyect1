@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Lock, Play, Star, Users, Volume2, VolumeX } from "lucide-react";
+import { ChevronRight, Lock, Play, Star, Users, Volume2, VolumeX } from "lucide-react";
 import { adsActive, hideBanner, showBanner } from "@/lib/ads";
 import { getMuted, setMuted, sfx } from "@/lib/juice";
 import { soloBest, totalStars, useSolo } from "@/lib/solo";
 import { recordFor, useRecords } from "@/lib/records";
+import { useParty } from "@/lib/party";
 import { ALL_GAMES, GAMES, type GameDef } from "@/lib/gameCatalog";
 
 /** Three pips under a card, showing what that game has been beaten to. */
@@ -101,6 +102,7 @@ function GameCard({ game, stars, best }: { game: GameDef; stars: number; best: n
 export default function GamesPage() {
   const { store: solo, refresh } = useSolo();
   const { store: versus } = useRecords();
+  const { matches: party } = useParty();
   const [quiet, setQuiet] = useState(false);
 
   useEffect(() => {
@@ -168,6 +170,27 @@ export default function GamesPage() {
           <p className="mt-0.5 text-[10px] font-semibold text-white/40">partidas en grupo</p>
         </div>
       </section>
+
+      {/* Only worth a tap once there's a second match to compare against the
+          first — same threshold MatchOver uses to offer it. */}
+      {party.length >= 2 && (
+        <Link
+          href="/games/fiesta"
+          onClick={() => sfx.tap()}
+          className="mx-5 mt-3 flex items-center gap-3 rounded-[26px] bg-gradient-to-r from-fuchsia-500/25 to-amber-400/25 px-4 py-3.5 backdrop-blur-sm active:scale-[0.98]"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-xl">
+            🎉
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-heading text-sm font-black text-white">Resumen de la fiesta</span>
+            <span className="tnum block text-[11px] font-semibold text-white/60">
+              {party.length} partidas jugadas esta noche
+            </span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-white/50" />
+        </Link>
+      )}
 
       <div className="mt-4 flex flex-col gap-3 px-5">
         {ALL_GAMES.map((g) => {

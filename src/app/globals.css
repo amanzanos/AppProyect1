@@ -41,6 +41,25 @@ body {
   letter-spacing: -0.006em;
   /* A game you shake the phone at should never bounce or pull-to-refresh. */
   overscroll-behavior: none;
+  position: relative;
+}
+
+/* A whisper of film grain over every screen. The boards are otherwise flat
+   vector shapes on flat gradients — nothing catches light the way a real
+   arcade cabinet's plastic does — and this is the cheapest way back to some
+   of that texture: one fixed, non-interactive layer, not per-component. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  /* Above every screen's own z-[999] (every game is a fixed full-screen
+     layer at that value) regardless of DOM order, since this has to sit
+     above all of them at once, not just the ones mounted after it. */
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
 .font-heading,
@@ -111,27 +130,6 @@ input:focus-visible,
 }
 
 
-/* Friendly button: soft shadow that eases on tap, no hard outline */
-.btn-pop {
-  position: relative;
-  box-shadow: 0 6px 16px -8px rgba(122, 48, 62, 0.34);
-  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, filter 0.16s ease;
-}
-
-@media (hover: hover) {
-  .btn-pop:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 22px -8px rgba(122, 48, 62, 0.38);
-    filter: saturate(1.06);
-  }
-}
-
-.btn-pop:active {
-  transform: scale(0.97) translateY(1px);
-  box-shadow: 0 3px 8px -6px rgba(122, 48, 62, 0.3);
-}
-
-
 /* Baseline tap feedback for every plain <button> that doesn't opt into its
    own — most already carry a Tailwind active:scale-* utility, and a class
    selector always outranks this bare element one, so those keep their own
@@ -142,19 +140,6 @@ button:not(:disabled) {
 }
 button:not(:disabled):active {
   transform: scale(0.96);
-}
-
-/* Keyboard-only focus ring — invisible on touch/mouse (:focus-visible
-   skips clicks/taps), but the app is also opened on desktop, where
-   nothing currently marks which control Tab lands on. */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-hot) 70%, white);
-  outline-offset: 2px;
-  border-radius: 6px;
 }
 
 /* Opt-out for a control whose wrapper already draws the focus treatment —

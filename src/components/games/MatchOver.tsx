@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PartyPopper, RotateCcw } from "lucide-react";
 import PrizeWheel from "@/components/games/PrizeWheel";
 import { showInterstitial } from "@/lib/ads";
 import { isNewRecord, recordMatch, useGameRecord } from "@/lib/records";
+import { recordSessionMatch, useParty } from "@/lib/party";
 import type { PlayerSlot, Seat } from "@/lib/data/gameRoom";
 import type { GameId } from "@/lib/gameCatalog";
 
@@ -27,7 +29,9 @@ interface MatchOverProps {
  * uninstall a party game.
  */
 export default function MatchOver({ game, seats, scores, unit, onPlayAgain, onExit }: MatchOverProps) {
+  const router = useRouter();
   const record = useGameRecord(game);
+  const { matches, refresh: refreshParty } = useParty();
   const [stage, setStage] = useState<"result" | "wheel" | "done">("result");
   const [beatRecord, setBeatRecord] = useState(false);
   const saved = useRef(false);
@@ -54,7 +58,9 @@ export default function MatchOver({ game, seats, scores, unit, onPlayAgain, onEx
     const best = winner?.score ?? 0;
     setBeatRecord(isNewRecord(record, best));
     recordMatch(game, { winnerName: winner?.seat.name ?? null, best });
-  }, [record, game, winner]);
+    recordSessionMatch(game, seats, scores, winner?.slot ?? null);
+    refreshParty();
+  }, [record, game, winner, seats, scores, refreshParty]);
 
   // The forfeit is paid at the table, not tracked — landing on it is all the
   // app needs to do.
@@ -114,7 +120,7 @@ export default function MatchOver({ game, seats, scores, unit, onPlayAgain, onEx
         </button>
       ) : null}
 
-      <div className="mt-1 flex gap-3">
+      <div className="mt-1 flex flex-wrap justify-center gap-3">
         <button
           onClick={again}
           className="flex items-center gap-1.5 rounded-full bg-white px-6 py-3 font-heading font-black text-neutral-900 active:scale-95"
@@ -128,6 +134,17 @@ export default function MatchOver({ game, seats, scores, unit, onPlayAgain, onEx
           Salir
         </button>
       </div>
+
+      {/* Only once there's a real night to look back on — the recap of one
+          match is just the table already on screen. */}
+      {matches.length >= 2 && (
+        <button
+          onClick={() => router.push("/games/fiesta")}
+          className="mt-1 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-fuchsia-400 to-amber-300 px-5 py-2.5 font-heading text-sm font-black text-fuchsia-950 shadow-lg active:scale-95"
+        >
+          <PartyPopper size={15} /> Resumen de la fiesta
+        </button>
+      )}
     </div>
   );
 }

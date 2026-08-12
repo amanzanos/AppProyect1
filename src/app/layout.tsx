@@ -20,7 +20,7 @@ const body = Nunito({
 export const metadata: Metadata = {
   title: "Blopy — minijuegos rápidos",
   description:
-    "Siete minijuegos de un dedo: topos, Simón, dardos y más. Partidas de un minuto, y modo a dos con un móvil cada uno.",
+    "Ocho minijuegos de un dedo: topos, Simón, dardos y más. Partidas de un minuto, y modo fiesta en la tele para hasta 8 móviles.",
   manifest: "/manifest.json",
   icons: { icon: "/icons/icon-192.png", apple: "/icons/icon-192.png" },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Blopy" },
