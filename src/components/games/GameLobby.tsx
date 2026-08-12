@@ -1,37 +1,8 @@
 "use client";
 
-import { Check, Loader2, MonitorSmartphone, Play, X } from "lucide-react";
-import { usePlayers } from "@/lib/players";
+import { Loader2, MonitorSmartphone, Play, X } from "lucide-react";
+import { MAX_PLAYERS, type PlayerSlot, type Seat } from "@/lib/data/gameRoom";
 import { firebaseConfigured } from "@/lib/firebase";
-
-/**
- * Deliberately anonymous: the two codes are told apart by the colour of their
- * ring, not by a name. Whoever scans one takes that side.
- */
-function QrCard({ qr, joined, color }: { qr: string | null; joined: boolean; color: string }) {
-
-  return (
-    <div className="flex flex-col items-center gap-2.5">
-      <div className="relative rounded-2xl bg-white p-2" style={{ boxShadow: `0 0 0 4px ${color}` }}>
-        {qr ? (
-          // eslint-disable-next-line @next/next/no-img-element -- data URI generated client-side by QRCode.toDataURL, nothing for the image optimizer to fetch
-          <img src={qr} alt="Código QR para unirse" className="h-32 w-32" />
-        ) : (
-          <div className="flex h-32 w-32 items-center justify-center">
-            <Loader2 size={22} className="animate-spin text-neutral-300" />
-          </div>
-        )}
-        {joined && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-2xl bg-emerald-500/95 text-white">
-            <Check size={32} strokeWidth={3} />
-            <span className="text-xs font-bold">¡Conectado!</span>
-          </div>
-        )}
-      </div>
-      <span className="h-1.5 w-10 rounded-full" style={{ background: color }} />
-    </div>
-  );
-}
 
 interface GameLobbyProps {
   title: string;
@@ -40,37 +11,70 @@ interface GameLobbyProps {
   background: string;
   steps: { icon: string; text: string }[];
   roomId: string | null;
-  qr1: string | null;
-  qr2: string | null;
-  joined1: boolean;
-  joined2: boolean;
+  /** One code for the whole room — whoever scans it takes the next free seat. */
+  qr: string | null;
+  seats: Record<PlayerSlot, Seat>;
+  /** Below this many the game can't start. Two for the duels, one for the rest. */
+  minPlayers?: number;
+  /** Some games can't take the full eight — tennis is a duel. */
+  maxPlayers?: number;
   onStart: () => void;
   onExit: () => void;
   /** Rendered next to the exit button — the tennis orientation toggle. */
   action?: React.ReactNode;
 }
 
-/** Shared join screen: how to play up top, both codes on one row underneath. */
+/** A claimed seat, or an empty chair waiting for somebody. */
+function SeatCard({ slot, seat }: { slot: PlayerSlot; seat: Seat | undefined }) {
+  if (!seat) {
+    return (
+      <div className="flex h-[4.5rem] w-[4.5rem] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 text-white/25">
+        <span className="text-xl font-black">{slot}</span>
+      </div>
+    );
+  }
+  return (
+    <div
+      className="animate-pop-in flex h-[4.5rem] w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1"
+      style={{ background: seat.color }}
+    >
+      <span className="text-2xl leading-none">{seat.emoji}</span>
+      <span className="w-full truncate text-center text-[10px] font-black leading-tight text-white">
+        {seat.name}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The join screen: how to play, one QR everybody scans, and the chairs filling
+ * up underneath as people arrive.
+ *
+ * One code rather than one per player is what lets the party be any size. It
+ * also means the screen never has to be told how many are coming — it finds
+ * out as they turn up.
+ */
 export default function GameLobby({
   title,
   emoji,
   background,
   steps,
   roomId,
-  qr1,
-  qr2,
-  joined1,
-  joined2,
+  qr,
+  seats,
+  minPlayers = 2,
+  maxPlayers = MAX_PLAYERS,
   onStart,
   onExit,
   action,
 }: GameLobbyProps) {
-  const { players } = usePlayers();
-  const bothReady = joined1 && joined2;
+  const taken = Object.keys(seats).length;
+  const ready = taken >= minPlayers;
+  const chairs = Array.from({ length: maxPlayers }, (_, i) => i + 1);
 
-  // With no Firebase project behind the build the codes are worthless: the
-  // phones can scan them and nothing will ever happen. Saying so beats a
-  // spinner that never resolves.
+  // With no Firebase project behind the build the code is worthless: phones can
+  // scan it and nothing will ever happen. Saying so beats a spinner that never
+  // resolves.
   if (!firebaseConfigured) {
     return (
       <div
@@ -85,7 +89,7 @@ export default function GameLobby({
           <X size={20} />
         </button>
         <span className="text-5xl">🔌</span>
-        <h1 className="font-heading text-2xl font-black">Modo a 2 no disponible</h1>
+        <h1 className="font-heading text-2xl font-black">Modo fiesta no disponible</h1>
         <p className="max-w-[30ch] text-sm leading-snug text-white/70">
           Esta versión no tiene servidor configurado, así que los móviles no pueden conectarse con la
           pantalla. Los juegos de un jugador funcionan igual.
@@ -114,47 +118,73 @@ export default function GameLobby({
       </button>
       {action && <div className="absolute right-4 top-4">{action}</div>}
 
-      <div className="mt-8 flex flex-col items-center gap-0.5">
+      <div className="mt-6 flex flex-col items-center gap-0.5">
         <span className="text-3xl">{emoji}</span>
         <h1 className="font-heading text-3xl font-black tracking-tight drop-shadow">{title}</h1>
-        {roomId && (
-          <p className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-[0.2em]">SALA {roomId}</p>
-        )}
       </div>
 
-      <div className="mt-5 w-full max-w-lg rounded-3xl bg-white/10 p-4 backdrop-blur-sm">
-        <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-white/70">
-          <MonitorSmartphone size={14} /> Cómo se juega
-        </p>
-        <ol className="mt-2.5 flex flex-col gap-2.5">
-          {steps.map((step, i) => (
-            <li key={i} className="flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-base">
-                {step.icon}
-              </span>
-              <span className="text-sm leading-snug text-white/90">{step.text}</span>
-            </li>
-          ))}
-        </ol>
+      <div className="mt-4 flex w-full max-w-3xl flex-col items-center gap-4 sm:flex-row sm:items-start sm:justify-center sm:gap-8">
+        {/* The one code. Big, because it is being read from across a room. */}
+        <div className="flex shrink-0 flex-col items-center gap-2">
+          <div className="rounded-2xl bg-white p-2.5 shadow-xl">
+            {qr ? (
+              // eslint-disable-next-line @next/next/no-img-element -- data URI generated client-side by QRCode.toDataURL, nothing for the image optimizer to fetch
+              <img src={qr} alt="Código QR para unirse a la partida" className="h-40 w-40" />
+            ) : (
+              <div className="flex h-40 w-40 items-center justify-center">
+                <Loader2 size={24} className="animate-spin text-neutral-300" />
+              </div>
+            )}
+          </div>
+          {roomId && (
+            <p className="rounded-full bg-white/15 px-3 py-1 font-heading text-sm font-black tracking-[0.3em]">
+              {roomId}
+            </p>
+          )}
+        </div>
+
+        <div className="w-full max-w-sm rounded-3xl bg-white/10 p-4 backdrop-blur-sm">
+          <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-white/70">
+            <MonitorSmartphone size={14} /> Cómo se juega
+          </p>
+          <ol className="mt-2.5 flex flex-col gap-2.5">
+            {steps.map((step, i) => (
+              <li key={i} className="flex items-center gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-base">
+                  {step.icon}
+                </span>
+                <span className="text-sm leading-snug text-white/90">{step.text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
 
-      <div className="mt-5 flex items-start justify-center gap-6">
-        <QrCard qr={qr1} joined={joined1} color={players[1].color} />
-        <QrCard qr={qr2} joined={joined2} color={players[2].color} />
+      <div className="mt-5 flex max-w-2xl flex-wrap justify-center gap-2">
+        {chairs.map((slot) => (
+          <SeatCard key={slot} slot={slot} seat={seats[slot]} />
+        ))}
       </div>
 
       <button
         onClick={onStart}
+        disabled={!ready}
         className={`mt-5 flex items-center gap-2 rounded-full px-8 py-3.5 font-heading text-lg font-extrabold shadow-xl transition active:scale-95 ${
-          bothReady ? "bg-gradient-to-r from-lime-300 to-emerald-400 text-emerald-950" : "bg-white/85 text-neutral-700"
+          ready
+            ? "bg-gradient-to-r from-lime-300 to-emerald-400 text-emerald-950"
+            : "bg-white/20 text-white/40"
         }`}
       >
         <Play size={20} fill="currentColor" />
-        {bothReady ? "¡A jugar!" : "Empezar de todas formas"}
+        ¡A jugar!
       </button>
 
       <p className="mb-4 mt-2 text-center text-xs text-white/60">
-        {bothReady ? "Los dos mandos están listos 🎮" : "Esperando a que los dos móviles se conecten…"}
+        {ready
+          ? `${taken} ${taken === 1 ? "jugador listo" : "jugadores listos"} 🎮 · pueden seguir entrando`
+          : minPlayers === 1
+            ? "Escanead el QR para entrar"
+            : `Escanead el QR — hacen falta al menos ${minPlayers}`}
       </p>
     </div>
   );

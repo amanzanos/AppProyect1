@@ -10,13 +10,12 @@ import MatchOver from "@/components/games/MatchOver";
 import { PIN_SPOTS, bowl, countDown, rack, settled, standingAfter, step, type Lane } from "@/lib/bowling";
 import { FRAMES, PINS, gameOver, nextBall, scoreGame } from "@/lib/bowlingScore";
 import { buildAlley, projectLane } from "@/lib/bowlingScene";
-import { loadPlayers, usePlayers } from "@/lib/players";
-import { setTurn } from "@/lib/data/gameRoom";
+import { setTurn, type PlayerSlot, type Seat } from "@/lib/data/gameRoom";
 import {
+  BOWLING_COLLECTION,
   createBowlingRoom,
   randomRoomCode,
   useBowlingRoom,
-  type PlayerSlot,
 } from "@/lib/data/bowlingGame";
 
 const SETTLE_MS = 1700;
@@ -27,16 +26,24 @@ type Phase = "lobby" | "playing" | "over";
 
 
 const STEPS = [
-  { icon: "📱", text: "Cada uno escanea su QR con la cámara del móvil" },
+  { icon: "📱", text: "Todos escanean el mismo QR — hasta 8 jugadores" },
   { icon: "🎳", text: "Inclina el móvil para apuntar y lánzalo hacia delante" },
-  { icon: "🏆", text: "Cinco rondas cada uno — plenos y semiplenos puntúan" },
+  { icon: "🏆", text: "Cinco rondas cada uno, por turnos — plenos y semiplenos puntúan" },
 ];
 
+/** The next bowler round the alley who hasn't finished their frames. */
+function nextBowler(slots: PlayerSlot[], current: PlayerSlot, rolls: Record<PlayerSlot, number[]>) {
+  const from = Math.max(slots.indexOf(current), 0);
+  for (let i = 1; i <= slots.length; i++) {
+    const slot = slots[(from + i) % slots.length];
+    if (!gameOver(rolls[slot] ?? [])) return slot;
+  }
+  return null;
+}
+
 /** A player's line on the scoresheet. */
-function ScoreRow({ slot, rolls, active }: { slot: PlayerSlot; rolls: number[]; active: boolean }) {
-  const { players } = usePlayers();
+function ScoreRow({ who, rolls, active }: { who: Seat; rolls: number[]; active: boolean }) {
   const { frames, total } = scoreGame(rolls);
-  const who = players[slot];
 
   return (
     <div className="flex items-center gap-2" style={{ opacity: active ? 1 : 0.5 }}>
@@ -67,16 +74,15 @@ function ScoreRow({ slot, rolls, active }: { slot: PlayerSlot; rolls: number[]; 
 }
 
 export default function BowlingPage() {
-  const { players } = usePlayers();
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("lobby");
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [qr1, setQr1] = useState<string | null>(null);
-  const [qr2, setQr2] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
   const [size, setSize] = useState({ w: 1280, h: 720 });
 
+  const [playing, setPlaying] = useState<Record<PlayerSlot, Seat>>({});
   const [turn, setTurnState] = useState<PlayerSlot>(1);
-  const [rolls, setRolls] = useState<Record<PlayerSlot, number[]>>({ 1: [], 2: [] });
+  const [rolls, setRolls] = useState<Record<PlayerSlot, number[]>>({});
   const [banner, setBanner] = useState<string | null>(null);
 
   const room = useBowlingRoom(roomId);
@@ -88,7 +94,8 @@ export default function BowlingPage() {
   const aimRef = useRef<SVGLineElement>(null);
   const pinRefs = useMemo(() => PIN_SPOTS.map(() => createRef<SVGGElement>()), []);
   const rafRef = useRef(0);
-  const consumed = useRef<Record<PlayerSlot, number>>({ 1: 0, 2: 0 });
+  const consumed = useRef<Record<PlayerSlot, number>>({});
+  const slotsRef = useRef<PlayerSlot[]>([]);
   const busy = useRef(false);
   /** The rack as it stands mid-frame, so a second ball faces what's left. */
   const standing = useRef<boolean[]>(PIN_SPOTS.map(() => true));
@@ -123,15 +130,17 @@ export default function BowlingPage() {
     const id = randomRoomCode();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot random room code minted on mount; Math.random() can't run during render
     setRoomId(id);
-    createBowlingRoom(id, loadPlayers());
+    createBowlingRoom(id);
   }, []);
 
   useEffect(() => {
     if (!roomId) return;
     const origin = window.location.origin;
-    const opts = { margin: 1, width: 260, color: { dark: "#22364f", light: "#ffffff" } };
-    QRCode.toDataURL(`${origin}/games/bowling/play?room=${roomId}&player=1`, opts).then(setQr1);
-    QRCode.toDataURL(`${origin}/games/bowling/play?room=${roomId}&player=2`, opts).then(setQr2);
+    QRCode.toDataURL(`${origin}/games/bowling/play?room=${roomId}`, {
+      margin: 1,
+      width: 320,
+      color: { dark: "#22364f", light: "#ffffff" },
+    }).then(setQr);
   }, [roomId]);
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
@@ -174,7 +183,7 @@ export default function BowlingPage() {
     (lane: Lane, slot: PlayerSlot) => {
       const down = countDown(lane);
       const before = standing.current.filter(Boolean).length;
-      const next = [...rollsRef.current[slot], down];
+      const next = [...(rollsRef.current[slot] ?? []), down];
       rollsRef.current = { ...rollsRef.current, [slot]: next };
       setRolls(rollsRef.current);
 
@@ -192,18 +201,18 @@ export default function BowlingPage() {
         const fresh = frameDone || down === before;
         standing.current = fresh ? PIN_SPOTS.map(() => true) : standingAfter(lane);
 
-        const other: PlayerSlot = slot === 1 ? 2 : 1;
         if (frameDone) {
-          if (gameOver(next) && gameOver(rollsRef.current[other])) {
+          // Round-robin: a finished frame hands the lane to the next bowler
+          // who still has frames left. When nobody has, the game is done.
+          const to = nextBowler(slotsRef.current, slot, rollsRef.current);
+          if (to === null) {
             setPhase("over");
             return;
           }
-          // Hand over unless the other player has already finished.
-          const to = gameOver(rollsRef.current[other]) ? slot : other;
           standing.current = PIN_SPOTS.map(() => true);
           turnRef.current = to;
           setTurnState(to);
-          if (roomId) setTurn("bowlingGames", roomId, to);
+          if (roomId) setTurn(BOWLING_COLLECTION, roomId, to);
         }
         resetLane();
       }, SETTLE_MS);
@@ -241,14 +250,17 @@ export default function BowlingPage() {
     const id = setInterval(() => {
       if (busy.current) return;
       const who = turnRef.current;
-      const sent = who === 1 ? roomRef.current?.player1Ball : roomRef.current?.player2Ball;
-      if (!sent || sent.at <= consumed.current[who]) return;
-      // Anything the other phone fired off out of turn is dropped here, so it
-      // can't go off the moment their turn comes round.
-      const other: PlayerSlot = who === 1 ? 2 : 1;
-      const stale = other === 1 ? roomRef.current?.player1Ball : roomRef.current?.player2Ball;
-      consumed.current = { ...consumed.current, [who]: sent.at, [other]: stale?.at ?? consumed.current[other] };
-      if (gameOver(rollsRef.current[who])) return;
+      const sent = roomRef.current?.controls[who];
+      if (!sent || sent.at <= (consumed.current[who] ?? 0)) return;
+      // Anything the other phones fired off out of turn is written off here, so
+      // it can't go off the moment their turn comes round.
+      const marked: Record<PlayerSlot, number> = { ...consumed.current, [who]: sent.at };
+      for (const other of slotsRef.current) {
+        if (other === who) continue;
+        marked[other] = roomRef.current?.controls[other]?.at ?? marked[other] ?? 0;
+      }
+      consumed.current = marked;
+      if (gameOver(rollsRef.current[who] ?? [])) return;
       busy.current = true;
       aimRef.current?.setAttribute("display", "none");
       play(sent.aim, sent.power, sent.spin, who);
@@ -264,25 +276,27 @@ export default function BowlingPage() {
   }, [phase, turn, rolls, spec, resetLane]);
 
   const start = useCallback(() => {
-    consumed.current = { 1: room?.player1Ball?.at ?? 0, 2: room?.player2Ball?.at ?? 0 };
+    const seats = room?.seats ?? {};
+    const order = Object.keys(seats).map(Number).sort((a, b) => a - b);
+    consumed.current = Object.fromEntries(order.map((s) => [s, room?.controls[s]?.at ?? 0]));
+    slotsRef.current = order;
+    setPlaying(seats);
+    rollsRef.current = Object.fromEntries(order.map((s) => [s, [] as number[]]));
+    setRolls(rollsRef.current);
+    setBanner(null);
     standing.current = PIN_SPOTS.map(() => true);
     setPhase("playing");
-    setTurnState(1);
-    if (roomId) setTurn("bowlingGames", roomId, 1);
+    const first = order[0] ?? 1;
+    turnRef.current = first;
+    setTurnState(first);
+    if (roomId) setTurn(BOWLING_COLLECTION, roomId, first);
   }, [room, roomId]);
 
-  function playAgain() {
-    setRolls({ 1: [], 2: [] });
-    setBanner(null);
-    start();
-  }
-
-  const totals = {
-    1: scoreGame(rolls[1]).total,
-    2: scoreGame(rolls[2]).total,
-  };
-  const winner: PlayerSlot | null = totals[1] === totals[2] ? null : totals[1] > totals[2] ? 1 : 2;
-  const at = nextBall(rolls[turn]);
+  const slots = Object.keys(playing).map(Number);
+  const totals: Record<PlayerSlot, number> = Object.fromEntries(
+    slots.map((s) => [s, scoreGame(rolls[s] ?? []).total])
+  );
+  const at = nextBall(rolls[turn] ?? []);
 
   if (phase === "lobby") {
     return (
@@ -293,10 +307,9 @@ export default function BowlingPage() {
           background="radial-gradient(circle at 50% -10%, #ef7f74 0%, #a63f4e 45%, #22364f 100%)"
           steps={STEPS}
           roomId={roomId}
-          qr1={qr1}
-          qr2={qr2}
-          joined1={room?.player1Joined ?? false}
-          joined2={room?.player2Joined ?? false}
+          qr={qr}
+          seats={room?.seats ?? {}}
+          minPlayers={1}
           onStart={start}
           onExit={() => router.push("/games")}
         />
@@ -319,9 +332,11 @@ export default function BowlingPage() {
           <X size={20} />
         </button>
 
-        <div className="flex flex-col gap-1.5 rounded-2xl bg-[#22364f]/85 px-4 py-2">
-          <ScoreRow slot={1} rolls={rolls[1]} active={turn === 1} />
-          <ScoreRow slot={2} rolls={rolls[2]} active={turn === 2} />
+        {/* One line per bowler. Eight of them still clears the pins on a TV. */}
+        <div className="flex max-h-[52vh] flex-col gap-1.5 overflow-y-auto rounded-2xl bg-[#22364f]/85 px-4 py-2">
+          {slots.map((slot) => (
+            <ScoreRow key={slot} who={playing[slot]} rolls={rolls[slot] ?? []} active={turn === slot} />
+          ))}
         </div>
 
         <span className="w-10 shrink-0" />
@@ -336,9 +351,7 @@ export default function BowlingPage() {
       )}
 
       <p className="absolute inset-x-0 bottom-0 z-20 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-center text-xs font-bold">
-        <span style={{ color: players[turn].color }}>
-          Tira {players[turn].name}
-        </span>
+        <span style={{ color: playing[turn]?.color }}>Tira {playing[turn]?.name}</span>
         <span className="text-white/45">
           {" "}
           · ronda {Math.min(at.frame + 1, FRAMES)} de {FRAMES}
@@ -348,10 +361,10 @@ export default function BowlingPage() {
       {phase === "over" && (
         <MatchOver
           game="bowling"
-          winner={winner}
-          scores={{ 1: totals[1], 2: totals[2] }}
+          seats={playing}
+          scores={totals}
           unit="puntos"
-          onPlayAgain={playAgain}
+          onPlayAgain={start}
           onExit={() => router.push("/games")}
         />
       )}

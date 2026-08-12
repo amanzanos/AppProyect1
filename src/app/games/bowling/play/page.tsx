@@ -1,11 +1,11 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Wifi, X } from "lucide-react";
-import { joinBowlingRoom, sendDelivery, useBowlingRoom } from "@/lib/data/bowlingGame";
-import { useRoomPlayers } from "@/lib/roomPlayers";
+import { useSearchParams } from "next/navigation";
+import ControllerShell from "@/components/games/ControllerShell";
+import { BOWLING_COLLECTION, sendDelivery, useBowlingRoom } from "@/lib/data/bowlingGame";
 import { vibrateSuccess } from "@/lib/haptics";
+import type { PlayerSlot } from "@/lib/data/gameRoom";
 
 /** Degrees of tilt that move the aim from the middle to the gutter. */
 const TILT_SPAN = 16;
@@ -24,13 +24,7 @@ const TAP_POWER = 0.9;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
-function BowlingControllerInner() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const room = params.get("room");
-  const player = params.get("player") === "2" ? 2 : 1;
-  const me = useRoomPlayers("bowlingGames", room)[player];
-
+function BowlingPad({ room, slot }: { room: string; slot: PlayerSlot }) {
   const [started, setStarted] = useState(false);
   const [needsPermission, setNeedsPermission] = useState(false);
   const [mode, setMode] = useState<"tilt" | "touch">("touch");
@@ -38,7 +32,7 @@ function BowlingControllerInner() {
   const [flash, setFlash] = useState(false);
 
   const state = useBowlingRoom(room);
-  const myTurn = (state?.turn ?? 1) === player;
+  const myTurn = (state?.turn ?? 1) === slot;
   const myTurnRef = useRef(myTurn);
 
   const aim = useRef(0);
@@ -64,11 +58,6 @@ function BowlingControllerInner() {
     myTurnRef.current = myTurn;
   }, [myTurn]);
 
-  useEffect(() => {
-    if (!room) return;
-    joinBowlingRoom(room, player);
-  }, [room, player]);
-
   /** Redraws the aiming line and the curve the hook would put on it. */
   const paint = useCallback(() => {
     const a = aim.current;
@@ -86,13 +75,13 @@ function BowlingControllerInner() {
       const now = Date.now();
       if (now - lastThrow.current <= COOLDOWN_MS) return;
       lastThrow.current = now;
-      sendDelivery(room, player, aimAtArm.current, power, spin.current);
+      sendDelivery(room, slot, aimAtArm.current, power, spin.current);
       vibrateSuccess();
       setThrown((n) => n + 1);
       setFlash(true);
       setTimeout(() => setFlash(false), 320);
     },
-    [room, player]
+    [room, slot]
   );
 
   useEffect(() => {
@@ -175,35 +164,8 @@ function BowlingControllerInner() {
     setStarted(true);
   }
 
-  if (!room) {
-    return (
-      <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-3 bg-neutral-900 px-8 text-center text-white">
-        <span className="text-4xl">🎳</span>
-        <p className="font-heading text-lg font-bold">Falta el código de sala</p>
-        <p className="text-sm text-white/60">Escanea el QR de la pantalla grande para unirte a la partida.</p>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-4 px-6 text-center text-white"
-      style={{ background: `radial-gradient(circle at 50% 15%, ${me.color} 0%, #22364f 72%)` }}
-    >
-      <button
-        onClick={() => router.push("/games")}
-        aria-label="Salir"
-        className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 active:scale-95"
-      >
-        <X size={20} />
-      </button>
-
-      <span className="absolute right-4 top-5 flex items-center gap-1.5 text-[11px] font-bold text-white/70">
-        <Wifi size={13} /> SALA {room}
-      </span>
-
-      <p className="font-heading text-2xl font-black drop-shadow">{me.name}</p>
-
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-white">
       {!started ? (
         <>
           <button
@@ -284,12 +246,19 @@ function BowlingControllerInner() {
             {mode === "tilt" ? "Inclina para la línea · lanza el móvil hacia delante" : "Arrastra en la pista para la línea"}
           </p>
 
-          <p className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] text-xs font-bold text-white/50">
-            {thrown} bolas
-          </p>
+          <p className="text-xs font-bold text-white/50">{thrown} bolas</p>
         </>
       )}
     </div>
+  );
+}
+
+function BowlingControllerInner() {
+  const room = useSearchParams().get("room");
+  return (
+    <ControllerShell collection={BOWLING_COLLECTION} room={room} emoji="🎳">
+      {({ slot }) => <BowlingPad room={room!} slot={slot} />}
+    </ControllerShell>
   );
 }
 

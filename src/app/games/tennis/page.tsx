@@ -11,9 +11,16 @@ import TennisLoading from "@/components/tennis/TennisLoading";
 import TennisLobby from "@/components/tennis/TennisLobby";
 import { buildScene, project, type SceneSpec } from "@/lib/tennisScene";
 import type { Orientation, PlayerSlot } from "@/lib/tennisTypes";
-import { loadPlayers, usePlayers } from "@/lib/players";
 
-import { createTennisRoom, randomRoomCode, useTennisRoom, type TennisRoom } from "@/lib/data/tennisGame";
+
+import {
+  createTennisRoom,
+  randomRoomCode,
+  useTennisRoom,
+  type TennisControl,
+} from "@/lib/data/tennisGame";
+import { seatLook } from "@/lib/players";
+import type { RoomState } from "@/lib/data/gameRoom";
 
 // Court coordinates are camera-independent: `across` runs sideways (0-100),
 // `along` runs down the court with 100 at the near baseline the camera sits
@@ -47,13 +54,11 @@ type Phase = "lobby" | "loading" | "playing" | "over";
 /** The court's slots are the app's two people. */
 
 export default function TennisPage() {
-  const { players } = usePlayers();
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("lobby");
   const [orientation, setOrientation] = useState<Orientation>("landscape");
   const [roomId, setRoomId] = useState<string | null>(null);
-  const [qr1, setQr1] = useState<string | null>(null);
-  const [qr2, setQr2] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
   const [score, setScore] = useState({ p1: 0, p2: 0 });
   const [winner, setWinner] = useState<PlayerSlot | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -61,7 +66,13 @@ export default function TennisPage() {
   const [view, setView] = useState({ w: 1280, h: 720 });
 
   const room = useTennisRoom(roomId);
-  const roomRef = useRef<TennisRoom | null>(null);
+  // Tennis is the one duel: seats 1 and 2, one each side of the net. Falling
+  // back to the generic look keeps the court drawable before anyone has joined.
+  const players = {
+    1: room?.seats[1] ?? seatLook(1),
+    2: room?.seats[2] ?? seatLook(2),
+  };
+  const roomRef = useRef<RoomState<TennisControl> | null>(null);
   const specRef = useRef<SceneSpec | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -103,15 +114,17 @@ export default function TennisPage() {
     const id = randomRoomCode();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot random room code minted on mount; Math.random() can't run during render
     setRoomId(id);
-    createTennisRoom(id, loadPlayers());
+    createTennisRoom(id);
   }, []);
 
   useEffect(() => {
     if (!roomId) return;
     const origin = window.location.origin;
-    const opts = { margin: 1, width: 260, color: { dark: "#0d3b52", light: "#ffffff" } };
-    QRCode.toDataURL(`${origin}/games/tennis/play?room=${roomId}&player=1`, opts).then(setQr1);
-    QRCode.toDataURL(`${origin}/games/tennis/play?room=${roomId}&player=2`, opts).then(setQr2);
+    QRCode.toDataURL(`${origin}/games/tennis/play?room=${roomId}`, {
+      margin: 1,
+      width: 320,
+      color: { dark: "#0d3b52", light: "#ffffff" },
+    }).then(setQr);
   }, [roomId]);
 
   /** Re-triggers a CSS animation that may already be running. */
@@ -175,7 +188,7 @@ export default function TennisPage() {
      * the first shot before.
      */
     function tryReturn(player: PlayerSlot): number | null {
-      const hit = player === 1 ? roomRef.current?.player1Hit : roomRef.current?.player2Hit;
+      const hit = roomRef.current?.controls[player];
       if (!hit || hit.at <= consumed[player]) return null;
       consumed[player] = hit.at;
       if (hit.at < Math.max(zoneAt - PRE_SWING_MS, legStart)) return null; // swung far too early
@@ -350,10 +363,8 @@ export default function TennisPage() {
       <div className="fixed inset-0 z-[999]">
         <TennisLobby
           roomId={roomId}
-          qr1={qr1}
-          qr2={qr2}
-          joined1={room?.player1Joined ?? false}
-          joined2={room?.player2Joined ?? false}
+          qr={qr}
+          seats={room?.seats ?? {}}
           orientation={orientation}
           onToggleOrientation={() => setOrientation((o) => (o === "landscape" ? "portrait" : "landscape"))}
           onStart={startMatch}
@@ -389,6 +400,7 @@ export default function TennisPage() {
         <div className="absolute inset-0">
           <TennisCourt
             spec={spec}
+            players={players}
             p1Ref={p1Ref}
             p2Ref={p2Ref}
             ballRef={ballRef}
@@ -448,7 +460,7 @@ export default function TennisPage() {
       {phase === "over" && winner && (
         <MatchOver
           game="tennis"
-          winner={winner}
+          seats={players}
           scores={{ 1: score.p1, 2: score.p2 }}
           unit="puntos"
           onPlayAgain={playAgain}

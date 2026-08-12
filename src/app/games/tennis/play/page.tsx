@@ -1,13 +1,13 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Wifi, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import ControllerShell from "@/components/games/ControllerShell";
 import TennisCharacter from "@/components/tennis/TennisCharacter";
-import { joinTennisRoom, sendTennisHit } from "@/lib/data/tennisGame";
-import { useRoomPlayers } from "@/lib/roomPlayers";
+import { TENNIS_COLLECTION, sendTennisHit } from "@/lib/data/tennisGame";
 import { TENNIS_LOOKS } from "@/lib/tennisTypes";
 import { vibrateSuccess } from "@/lib/haptics";
+import type { PlayerSlot, Seat } from "@/lib/data/gameRoom";
 
 /**
  * A swing isn't a single spike, it's an accelerate-then-stop gesture. We arm on
@@ -36,13 +36,7 @@ function powerFromPeak(peak: number) {
   return 3;
 }
 
-function TennisControllerInner() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const room = params.get("room");
-  const player = params.get("player") === "2" ? 2 : 1;
-  const me = useRoomPlayers("tennisGames", room)[player];
-
+function TennisPad({ room, slot, me }: { room: string; slot: PlayerSlot; me: Seat }) {
   const [started, setStarted] = useState(false);
   const [needsPermission, setNeedsPermission] = useState(false);
   const [hits, setHits] = useState(0);
@@ -57,11 +51,6 @@ function TennisControllerInner() {
     setNeedsPermission(typeof DME?.requestPermission === "function");
   }, []);
 
-  useEffect(() => {
-    if (!room) return;
-    joinTennisRoom(room, player);
-  }, [room, player]);
-
   const registerHit = useCallback(
     (power: number) => {
       if (!room) return;
@@ -69,13 +58,13 @@ function TennisControllerInner() {
       const now = Date.now();
       if (now - lastSwingRef.current <= SWING_COOLDOWN_MS) return;
       lastSwingRef.current = now;
-      sendTennisHit(room, player, power);
+      sendTennisHit(room, slot, power);
       vibrateSuccess();
       setHits((h) => h + 1);
       setSwinging(true);
       setTimeout(() => setSwinging(false), 220);
     },
-    [room, player]
+    [room, slot]
   );
 
   useEffect(() => {
@@ -131,38 +120,13 @@ function TennisControllerInner() {
     setStarted(true);
   }
 
-  if (!room) {
-    return (
-      <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-3 bg-neutral-900 px-8 text-center text-white">
-        <span className="text-4xl">🎾</span>
-        <p className="font-heading text-lg font-bold">Falta el código de sala</p>
-        <p className="text-sm text-white/60">Escanea el QR de la pantalla del proyector para unirte a la partida.</p>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-5 px-6 text-center text-white"
-      style={{ background: `radial-gradient(circle at 50% 20%, ${me.color} 0%, #1b1b23 75%)` }}
-    >
-      <button
-        onClick={() => router.push("/games")}
-        aria-label="Salir"
-        className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 active:scale-95"
-      >
-        <X size={20} />
-      </button>
-
-      <span className="absolute right-4 top-5 flex items-center gap-1.5 text-[11px] font-bold text-white/70">
-        <Wifi size={13} /> SALA {room}
-      </span>
-
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 text-center text-white">
       <div className={`tennis-sprite ${swinging ? "is-swinging" : ""}`}>
-        <TennisCharacter color={me.color} longHair={TENNIS_LOOKS[player].longHair} size={120} />
+        {/* Seats 1 and 2 get different hair so the two sides read apart on
+            the court even at projector distance. */}
+        <TennisCharacter color={me.color} longHair={TENNIS_LOOKS[slot === 2 ? 2 : 1].longHair} size={120} />
       </div>
-
-      <p className="font-heading text-3xl font-black drop-shadow">{me.name}</p>
 
       {!started ? (
         <>
@@ -196,6 +160,15 @@ function TennisControllerInner() {
         </>
       )}
     </div>
+  );
+}
+
+function TennisControllerInner() {
+  const room = useSearchParams().get("room");
+  return (
+    <ControllerShell collection={TENNIS_COLLECTION} room={room} emoji="🎾">
+      {({ slot, me }) => <TennisPad room={room!} slot={slot} me={me} />}
+    </ControllerShell>
   );
 }
 

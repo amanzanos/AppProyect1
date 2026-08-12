@@ -2,14 +2,14 @@
 
 import { RectangleHorizontal, RectangleVertical } from "lucide-react";
 import GameLobby from "@/components/games/GameLobby";
+import { TENNIS_MAX_PLAYERS } from "@/lib/data/tennisGame";
+import type { PlayerSlot, Seat } from "@/lib/data/gameRoom";
 import type { Orientation } from "@/lib/tennisTypes";
 
 interface TennisLobbyProps {
   roomId: string | null;
-  qr1: string | null;
-  qr2: string | null;
-  joined1: boolean;
-  joined2: boolean;
+  qr: string | null;
+  seats: Record<PlayerSlot, Seat>;
   orientation: Orientation;
   onToggleOrientation: () => void;
   onStart: () => void;
@@ -17,17 +17,15 @@ interface TennisLobbyProps {
 }
 
 const STEPS = [
-  { icon: "📱", text: "Cada uno escanea su QR con la cámara del móvil" },
+  { icon: "📱", text: "Los dos escanean el mismo QR — uno a cada lado de la red" },
   { icon: "🎾", text: "Agita el móvil como si dieras un raquetazo" },
   { icon: "🏆", text: "Devuelve la bola — el primero en llegar a 5 gana" },
 ];
 
 export default function TennisLobby({
   roomId,
-  qr1,
-  qr2,
-  joined1,
-  joined2,
+  qr,
+  seats,
   orientation,
   onToggleOrientation,
   onStart,
@@ -40,10 +38,10 @@ export default function TennisLobby({
       background="radial-gradient(circle at 50% -10%, #1e6f9a 0%, #0d3b52 45%, #07202e 100%)"
       steps={STEPS}
       roomId={roomId}
-      qr1={qr1}
-      qr2={qr2}
-      joined1={joined1}
-      joined2={joined2}
+      qr={qr}
+      seats={seats}
+      minPlayers={TENNIS_MAX_PLAYERS}
+      maxPlayers={TENNIS_MAX_PLAYERS}
       onStart={onStart}
       onExit={onExit}
       action={

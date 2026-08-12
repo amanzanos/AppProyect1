@@ -1,16 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { PlayerSlot } from "@/lib/data/gameRoom";
 
 /**
- * Who is playing. The couple app this came from had exactly two people baked
- * into the code; here the two seats belong to whoever picked up the phones,
- * so they are named on the device and kept in localStorage.
+ * Who is playing.
  *
- * Deliberately *not* in Firestore: a party game's players change every night,
- * nobody wants an account for this, and every read we don't make is free tier
- * we don't spend.
+ * The couple app this came from had exactly two people baked into the code.
+ * Here the seats belong to whoever picked up a phone, and there can be up to
+ * eight of them, so a seat's look is derived from its number and its name
+ * comes from the phone sitting in it.
+ *
+ * Deliberately *not* an account: a party game's players change every night,
+ * nobody wants to sign up for this, and every read we don't make is free tier
+ * we don't spend. What little is remembered lives in localStorage on the
+ * screen's own device.
+ *
+ * No import from gameRoom on purpose — that module needs `seatLook`, and a
+ * cycle between the two would only be safe by accident.
  */
 export interface Player {
   name: string;
@@ -18,25 +24,35 @@ export interface Player {
   emoji: string;
 }
 
-export type Players = Record<PlayerSlot, Player>;
+/** Seat numbers are 1-based; the party decides how many there are. */
+export type Players = Record<number, Player>;
 
 /** Picked to stay apart on a projector and to survive colour-blind viewers. */
 export const PALETTE = [
   "#e63946",
-  "#f4802f",
-  "#f0b429",
-  "#3fa34d",
-  "#1f9ec4",
   "#4b6ef5",
+  "#3fa34d",
+  "#f0b429",
   "#9b5de5",
+  "#f4802f",
+  "#1f9ec4",
   "#ff6fb5",
 ] as const;
 
-export const EMOJI = ["🦁", "🌸", "🐙", "🦊", "🐸", "🦄", "🐼", "🦈", "👾", "🤖", "🐢", "🍀"] as const;
+export const EMOJI = ["🦁", "🐙", "🐸", "🦊", "🦄", "🐼", "🦈", "🌸"] as const;
+
+/**
+ * What seat N looks like before anybody renames themselves. Pure, so the
+ * screen and the phones always agree without having to ask each other.
+ */
+export function seatLook(slot: number): Player {
+  const i = (slot - 1) % PALETTE.length;
+  return { name: `Jugador ${slot}`, color: PALETTE[i], emoji: EMOJI[i] };
+}
 
 export const DEFAULT_PLAYERS: Players = {
-  1: { name: "Jugador 1", color: "#e63946", emoji: "🦁" },
-  2: { name: "Jugador 2", color: "#4b6ef5", emoji: "🐙" },
+  1: seatLook(1),
+  2: seatLook(2),
 };
 
 const KEY = "blopy-players";
@@ -46,7 +62,7 @@ export function loadPlayers(): Players {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return DEFAULT_PLAYERS;
-    const parsed = JSON.parse(raw) as Partial<Record<PlayerSlot, Partial<Player>>>;
+    const parsed = JSON.parse(raw) as Partial<Record<number, Partial<Player>>>;
     return {
       1: { ...DEFAULT_PLAYERS[1], ...parsed[1] },
       2: { ...DEFAULT_PLAYERS[2], ...parsed[2] },
@@ -82,7 +98,7 @@ export function usePlayers() {
     setPlayers(loadPlayers());
   }, []);
 
-  const update = useCallback((slot: PlayerSlot, patch: Partial<Player>) => {
+  const update = useCallback((slot: number, patch: Partial<Player>) => {
     setPlayers((prev) => {
       const next: Players = { ...prev, [slot]: { ...prev[slot], ...patch } };
       savePlayers(next);

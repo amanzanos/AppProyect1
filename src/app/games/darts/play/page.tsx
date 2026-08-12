@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Crosshair, Wifi, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Crosshair } from "lucide-react";
 import Dartboard, { BOARD_EXTENT } from "@/components/games/Dartboard";
+import ControllerShell from "@/components/games/ControllerShell";
 import { AIM_LIMIT, clampAim } from "@/lib/darts";
-import { joinDartsRoom, sendDartThrow, useDartsRoom } from "@/lib/data/dartsGame";
-import { useRoomPlayers } from "@/lib/roomPlayers";
+import { DARTS_COLLECTION, sendDartThrow, useDartsRoom } from "@/lib/data/dartsGame";
 import { vibrateSuccess } from "@/lib/haptics";
+import type { PlayerSlot } from "@/lib/data/gameRoom";
 
 /** Degrees of tilt that move the crosshair a full board radius. */
 const TILT_SPAN = 20;
@@ -22,13 +23,7 @@ const IDEAL_PEAK = 16; // the strength that throws cleanest
 const GRAVITY = 9.81;
 const TAP_QUALITY = 0.75;
 
-function DartsControllerInner() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const room = params.get("room");
-  const player = params.get("player") === "2" ? 2 : 1;
-  const me = useRoomPlayers("dartsGames", room)[player];
-
+function DartsPad({ room, slot }: { room: string; slot: PlayerSlot }) {
   const [started, setStarted] = useState(false);
   const [needsPermission, setNeedsPermission] = useState(false);
   const [mode, setMode] = useState<"tilt" | "touch">("touch");
@@ -36,7 +31,7 @@ function DartsControllerInner() {
   const [flash, setFlash] = useState(false);
 
   const state = useDartsRoom(room);
-  const myTurn = (state?.turn ?? 1) === player;
+  const myTurn = (state?.turn ?? 1) === slot;
   const myTurnRef = useRef(myTurn);
 
   const aim = useRef({ x: 0, y: 0 });
@@ -62,11 +57,6 @@ function DartsControllerInner() {
     myTurnRef.current = myTurn;
   }, [myTurn]);
 
-  useEffect(() => {
-    if (!room) return;
-    joinDartsRoom(room, player);
-  }, [room, player]);
-
   const paint = useCallback(() => {
     crossRef.current?.setAttribute("transform", `translate(${aim.current.x} ${aim.current.y})`);
   }, []);
@@ -77,13 +67,13 @@ function DartsControllerInner() {
       const now = Date.now();
       if (now - lastThrow.current <= COOLDOWN_MS) return;
       lastThrow.current = now;
-      sendDartThrow(room, player, from.x, from.y, quality);
+      sendDartThrow(room, slot, from.x, from.y, quality);
       vibrateSuccess();
       setThrown((n) => n + 1);
       setFlash(true);
       setTimeout(() => setFlash(false), 260);
     },
-    [room, player]
+    [room, slot]
   );
 
   // Aiming by tilt, smoothed and clamped so the crosshair cannot leave the
@@ -173,35 +163,8 @@ function DartsControllerInner() {
     setStarted(true);
   }
 
-  if (!room) {
-    return (
-      <div className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-3 bg-neutral-900 px-8 text-center text-white">
-        <span className="text-4xl">🎯</span>
-        <p className="font-heading text-lg font-bold">Falta el código de sala</p>
-        <p className="text-sm text-white/60">Escanea el QR de la pantalla grande para unirte a la partida.</p>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-4 px-6 text-center text-white"
-      style={{ background: `radial-gradient(circle at 50% 15%, ${me.color} 0%, #16121a 72%)` }}
-    >
-      <button
-        onClick={() => router.push("/games")}
-        aria-label="Salir"
-        className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 active:scale-95"
-      >
-        <X size={20} />
-      </button>
-
-      <span className="absolute right-4 top-5 flex items-center gap-1.5 text-[11px] font-bold text-white/70">
-        <Wifi size={13} /> SALA {room}
-      </span>
-
-      <p className="font-heading text-2xl font-black drop-shadow">{me.name}</p>
-
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-white">
       {!started ? (
         <>
           <button
@@ -264,12 +227,19 @@ function DartsControllerInner() {
             Centrar la mira
           </button>
 
-          <p className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] text-xs font-bold text-white/50">
-            {thrown} dardos
-          </p>
+          <p className="text-xs font-bold text-white/50">{thrown} dardos</p>
         </>
       )}
     </div>
+  );
+}
+
+function DartsControllerInner() {
+  const room = useSearchParams().get("room");
+  return (
+    <ControllerShell collection={DARTS_COLLECTION} room={room} emoji="🎯">
+      {({ slot }) => <DartsPad room={room!} slot={slot} />}
+    </ControllerShell>
   );
 }
 

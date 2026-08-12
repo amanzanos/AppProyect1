@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 import TennisCharacter from "@/components/tennis/TennisCharacter";
 import { courtLine, lineAcrossCourt, lineDownCourt, project, type SceneSpec } from "@/lib/tennisScene";
 import { TENNIS_LOOKS, type PlayerSlot } from "@/lib/tennisTypes";
-import { usePlayers } from "@/lib/players";
+import type { Player } from "@/lib/players";
 
 // Sizes are in feet of real court, converted through spec.unit, so the scene
 // keeps its proportions at any screen size and under either camera.
@@ -34,6 +34,8 @@ function poly(points: { x: number; y: number }[]) {
 
 interface TennisCourtProps {
   spec: SceneSpec;
+  /** Who is on each side, so the sprites match the lobby and the scoreboard. */
+  players: Record<PlayerSlot, Player>;
   /** The live sprites live inside this SVG so a single projection governs both
       the painted court and everything standing on it — they can't drift apart
       at any screen size. */
@@ -56,13 +58,13 @@ interface TennisCourtProps {
  */
 export default function TennisCourt({
   spec,
+  players,
   p1Ref,
   p2Ref,
   ballRef,
   shadowRef,
   impactRef,
 }: TennisCourtProps) {
-  const { players } = usePlayers();
   const ft = (feet: number, scale = 1) => feet * spec.unit * scale;
   const charHeight = ft(spec.sideOn ? CHAR_FT_SIDE : CHAR_FT_HEAD);
   const charWidth = (charHeight * 60) / 84;

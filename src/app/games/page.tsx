@@ -82,17 +82,17 @@ function GameCard({ game, stars, best }: { game: GameDef; stars: number; best: n
           </span>
         )}
 
-        {/* The two-player version is still here, just no longer the front
-            door — it needs a second phone and a screen, which is a lot to
-            ask of someone who has had the app for ten seconds. */}
+        {/* The party version is still here, just no longer the front door —
+            it needs a screen and a phone each, which is a lot to ask of
+            someone who has had the app for ten seconds. */}
         {versus && (
           <Link
             href={versus}
             onClick={() => sfx.tap()}
-            aria-label={`${game.name} — dos jugadores`}
+            aria-label={`${game.name} — en la tele, hasta 8 jugadores`}
             className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#2b1a5e]/8 px-4 py-3 font-heading text-xs font-black text-[#2b1a5e]/70 active:scale-95"
           >
-            <Users size={14} /> 2
+            <Users size={14} /> FIESTA
           </Link>
         )}
       </div>
@@ -124,10 +124,7 @@ export default function GamesPage() {
 
   const stars = totalStars(solo);
   const maxStars = ALL_GAMES.length * 3;
-  const versusPlays = GAMES.reduce((sum, g) => {
-    const r = recordFor(versus, g.id);
-    return sum + r[1].plays + r[2].plays;
-  }, 0);
+  const versusPlays = GAMES.reduce((sum, g) => sum + recordFor(versus, g.id).plays, 0);
 
   return (
     <main
@@ -172,7 +169,7 @@ export default function GamesPage() {
         <span className="h-9 w-px bg-white/15" />
         <div className="shrink-0 text-right">
           <p className="tnum font-heading text-lg font-black leading-none text-white/80">{versusPlays}</p>
-          <p className="mt-0.5 text-[10px] font-semibold text-white/40">partidas a 2</p>
+          <p className="mt-0.5 text-[10px] font-semibold text-white/40">partidas en grupo</p>
         </div>
       </section>
 
