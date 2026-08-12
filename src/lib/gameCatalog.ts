@@ -1,6 +1,6 @@
 /** Every game in one place, so the hub, the records and the wheel agree. */
 
-export type GameId = "tennis" | "darts" | "bowling" | "quiz" | "moles" | "simon" | "odd";
+export type GameId = "tennis" | "darts" | "bowling" | "quiz" | "karaoke" | "moles" | "simon" | "odd";
 
 export interface GameStatBar {
   label: string;
@@ -90,6 +90,20 @@ export const GAMES: GameDef[] = [
       { label: "Cultura", value: 90, color: "#7c4dea" },
       { label: "Reflejos", value: 82, color: "#e6a419" },
       { label: "Piques", value: 95, color: "#f472b6" },
+    ],
+  },
+  {
+    id: "karaoke",
+    name: "Karaoke",
+    emoji: "🎤",
+    tagline: "La letra sale en la tele y cantáis por turnos al móvil",
+    href: "/games/karaoke",
+    accent: "#d9457f",
+    unit: "puntos",
+    bars: [
+      { label: "Oído", value: 92, color: "#d9457f" },
+      { label: "Vergüenza", value: 98, color: "#e6a419" },
+      { label: "Piques", value: 88, color: "#f472b6" },
     ],
   },
 ];

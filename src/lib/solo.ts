@@ -27,6 +27,9 @@ export const STAR_BANDS: Record<GameId, StarBands> = {
   bowling: { one: 45, two: 80, three: 110 },
   quiz: { one: 400, two: 800, three: 1200 },
   tennis: { one: 6, two: 14, three: 25 },
+  // Karaoke is scored out of 1000, and singing it roughly right lands near
+  // 700 — three stars means actually holding the tune, not just making noise.
+  karaoke: { one: 400, two: 650, three: 850 },
   // Tuned from playtests below: a first go lands one star, three takes work.
   moles: { one: 15, two: 35, three: 60 },
   simon: { one: 4, two: 8, three: 13 },

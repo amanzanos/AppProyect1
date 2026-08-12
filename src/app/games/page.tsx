@@ -3,13 +3,11 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Lock, Pencil, Play, Star, Users, Volume2, VolumeX } from "lucide-react";
-import PlayerSetup from "@/components/PlayerSetup";
+import { Lock, Play, Star, Users, Volume2, VolumeX } from "lucide-react";
 import { adsActive, hideBanner, showBanner } from "@/lib/ads";
 import { getMuted, setMuted, sfx } from "@/lib/juice";
 import { soloBest, totalStars, useSolo } from "@/lib/solo";
 import { recordFor, useRecords } from "@/lib/records";
-import { usePlayers } from "@/lib/players";
 import { ALL_GAMES, GAMES, type GameDef } from "@/lib/gameCatalog";
 
 /** Three pips under a card, showing what that game has been beaten to. */
@@ -101,10 +99,8 @@ function GameCard({ game, stars, best }: { game: GameDef; stars: number; best: n
 }
 
 export default function GamesPage() {
-  const { players, update } = usePlayers();
   const { store: solo, refresh } = useSolo();
   const { store: versus } = useRecords();
-  const [editing, setEditing] = useState(false);
   const [quiet, setQuiet] = useState(false);
 
   useEffect(() => {
@@ -180,21 +176,10 @@ export default function GamesPage() {
         })}
       </div>
 
-      <button
-        onClick={() => {
-          sfx.tap();
-          setEditing(true);
-        }}
-        className="mx-5 mt-5 flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2 text-[11px] font-bold text-white/60 active:scale-95"
-      >
-        <Pencil size={11} /> Jugadores para el modo a 2
-      </button>
-
-      <Link href="/privacidad" className="mx-5 mt-4 block pb-2 text-[11px] font-semibold text-white/30">
+      <Link href="/privacidad" className="mx-5 mt-5 block pb-2 text-[11px] font-semibold text-white/30">
         Privacidad
       </Link>
 
-      {editing && <PlayerSetup players={players} onChange={update} onDone={() => setEditing(false)} />}
     </main>
   );
 }

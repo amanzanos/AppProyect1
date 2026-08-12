@@ -19,35 +19,49 @@ export default function PrivacyPage() {
           <h2 className="font-heading text-lg font-bold text-white">Resumen</h2>
           <p className="mt-2">
             Blopy no pide cuenta, no pide correo y no guarda ningún dato que identifique a quien
-            juega. Los datos que existen son mínimos: un nombre de jugador puesto a mano, que se
-            queda en el propio teléfono, y —solo si has aceptado ver anuncios— el identificador de
-            publicidad que usa Google para elegir qué anuncio mostrar.
+            juega. Los datos que existen son mínimos: un nombre de jugador puesto a mano, que solo
+            vive mientras dura la partida, y —solo si has aceptado ver anuncios— el identificador de
+            publicidad que usa Google para elegir qué anuncio mostrar. El karaoke usa el micrófono
+            mientras cantas, pero no graba nada ni envía audio a ningún sitio.
           </p>
         </section>
 
         <section>
           <h2 className="font-heading text-lg font-bold text-white">Qué se guarda en tu dispositivo</h2>
           <p className="mt-2">
-            El nombre y color que eliges para cada jugador, tus mejores puntuaciones y tus
-            estrellas se guardan solo en el almacenamiento local del navegador o de la app, en tu
-            propio teléfono. Nunca se envían a ningún servidor y desaparecen si borras los datos de
+            Tus mejores puntuaciones y tus estrellas se guardan solo en el almacenamiento local del
+            navegador o de la app, en tu propio teléfono. Nunca se envían a ningún servidor y desaparecen si borras los datos de
             la aplicación.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-lg font-bold text-white">Modo a dos jugadores</h2>
+          <h2 className="font-heading text-lg font-bold text-white">Modo en grupo</h2>
           <p className="mt-2">
             Cuando juegas en pantalla grande con un móvil de mando, se crea una sala temporal
             identificada por un código de cuatro letras, usando Firebase (Google) para que los
             dispositivos se hablen entre ellos. Esa sala contiene únicamente los movimientos de la
-            partida —no un nombre real, ni una foto, ni ningún dato personal— y no se conserva
-            pasado el rato de la partida.
+            partida y el nombre que cada jugador escribe en su móvil —que puede ser cualquier cosa,
+            no se comprueba y no se asocia a nadie— y no se conserva pasado el rato de la partida.
           </p>
           <p className="mt-2">
             Para poder crear esa sala, la app inicia una sesión anónima automática con Firebase
             Authentication. Es invisible: no se te pide ningún dato, y esa sesión no está ligada a
             ti fuera de la propia partida.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-heading text-lg font-bold text-white">Micrófono (karaoke)</h2>
+          <p className="mt-2">
+            El karaoke necesita el micrófono, y solo mientras te toca cantar: se te pedirá permiso y
+            puedes decir que no — el resto de juegos funcionan igual.
+          </p>
+          <p className="mt-2">
+            <strong>El sonido no se graba, no se guarda y no sale de tu teléfono.</strong> Se analiza
+            sobre la marcha, en el propio dispositivo, solo para saber qué nota estás cantando. Lo
+            único que llega a la pantalla es tu puntuación: un número. No se envía audio a ningún
+            servidor, ni al nuestro ni al de nadie.
           </p>
         </section>
 
@@ -80,7 +94,8 @@ export default function PrivacyPage() {
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>No pide registro ni cuenta.</li>
             <li>No pide ni guarda correo, teléfono, ni ningún dato de contacto.</li>
-            <li>No usa cámara, micrófono ni ubicación.</li>
+            <li>No usa cámara ni ubicación.</li>
+            <li>No graba ni guarda audio: el micrófono del karaoke se analiza en el momento y en tu propio teléfono.</li>
             <li>No vende datos a nadie.</li>
             <li>No está dirigida específicamente a menores de edad.</li>
           </ul>

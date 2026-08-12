@@ -73,6 +73,7 @@ export async function createRoom(collection: string, roomId: string, blank: obje
     turn: 1,
     round: -1,
     seats: {},
+    stage: {},
     blank,
   });
 }
@@ -161,7 +162,10 @@ export async function sendControl(collection: string, roomId: string, player: Pl
   await setDoc(controlDoc(collection, roomId, player), { at: Date.now(), joined: true, ...payload });
 }
 
-export interface RoomState<C> {
+/** Anything a game needs the whole room to agree on. */
+export type Stage = Record<string, string | number | boolean>;
+
+export interface RoomState<C, S extends Stage = Stage> {
   createdAt: number;
   /** Whose go it is. Written by the screen, read by the phones so they know
       when to wait; changes a handful of times a minute, not per frame. */
@@ -174,6 +178,12 @@ export interface RoomState<C> {
   slots: PlayerSlot[];
   /** The latest thing each controller sent, by seat. */
   controls: Record<PlayerSlot, C | null>;
+  /**
+   * Game-specific state the screen publishes to the phones — which song is up,
+   * who is singing it, when it starts. Turn and round cover the common cases;
+   * this is for what doesn't fit them.
+   */
+  stage: Partial<S>;
 }
 
 const EMPTY_SEATS: Record<PlayerSlot, Seat> = {};
@@ -182,8 +192,11 @@ const EMPTY_SEATS: Record<PlayerSlot, Seat> = {};
  * Merges the room document and every control document into one object, so the
  * split write path stays invisible to the game loop reading it.
  */
-export function useRoom<C extends ControlBase>(collection: string, roomId: string | null): RoomState<C> | null {
-  const [room, setRoom] = useState<RoomState<C> | null>(null);
+export function useRoom<C extends ControlBase, S extends Stage = Stage>(
+  collection: string,
+  roomId: string | null
+): RoomState<C, S> | null {
+  const [room, setRoom] = useState<RoomState<C, S> | null>(null);
 
   useEffect(() => {
     if (!roomId || !firebaseConfigured) return;
@@ -191,13 +204,14 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
     // that function could in principle be called later, when roomId is null
     // again.
     const room = roomId;
-    const state: RoomState<C> = {
+    const state: RoomState<C, S> = {
       createdAt: 0,
       turn: 1,
       round: -1,
       seats: EMPTY_SEATS,
       slots: [],
       controls: {},
+      stage: {},
     };
     const publish = () => setRoom({ ...state, controls: { ...state.controls } });
 
@@ -213,12 +227,19 @@ export function useRoom<C extends ControlBase>(collection: string, roomId: strin
       return [
         onSnapshot(doc(db, collection, room), (snap) => {
           const d = snap.data() as
-            | { createdAt?: number; turn?: number; round?: number; seats?: Record<string, Seat | null> }
+            | {
+                createdAt?: number;
+                turn?: number;
+                round?: number;
+                seats?: Record<string, Seat | null>;
+                stage?: Partial<S>;
+              }
             | undefined;
           if (!d) return;
           state.createdAt = d.createdAt ?? 0;
           state.turn = d.turn ?? 1;
           state.round = d.round ?? -1;
+          state.stage = d.stage ?? {};
           const seats: Record<PlayerSlot, Seat> = {};
           for (const [key, seat] of Object.entries(d.seats ?? {})) {
             // A seat given up is written as null rather than deleted, so the
@@ -265,6 +286,16 @@ export async function setRound(collection: string, roomId: string, round: number
   if (offline()) return;
   await ensureSignedIn();
   await updateDoc(doc(db, collection, roomId), { round });
+}
+
+/** Publish game-specific room state. One write per change, not per frame. */
+export async function setStage(collection: string, roomId: string, patch: Stage) {
+  if (offline()) return;
+  await ensureSignedIn();
+  await updateDoc(
+    doc(db, collection, roomId),
+    Object.fromEntries(Object.entries(patch).map(([k, v]) => [`stage.${k}`, v]))
+  );
 }
 
 /** The seat after this one, wrapping — the turn order for the turn-based games. */

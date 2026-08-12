@@ -22,6 +22,9 @@ el portátil, o el proyector) y cada uno juega con su propio móvil como
 mando, moviéndolo, apuntando, agitándolo. La misma sensación de sobremesa
 de siempre, con lo que ya tenéis en casa.
 
+Hasta ocho jugadores en la misma sala: un solo código QR, lo escanea todo el
+mundo y a jugar.
+
 Y para cuando sois pocos, o vais solos: cuatro minijuegos de un dedo, sin
 esperar a nadie.
 
@@ -34,15 +37,20 @@ QUÉ HAY PARA JUGAR SOLO
 Tres estrellas por juego, un récord que batir, y una racha de aciertos que
 sube el sonido y la puntuación cuanto mejor vas.
 
-LA PARTE DE WII: JUGAR CON ALGUIEN MÁS
-🎾 Tenis · 🎯 Dardos · 🎳 Bolos · 🧠 Quiz — escaneas un código QR con el móvil
-y ya eres el mando de esa partida, mientras la pantalla grande enseña el
-juego a todos. Agita, apunta, lanza — el mismo gesto de siempre, con
-vuestros propios móviles.
+LA PARTE DE WII: HASTA 8 JUGADORES
+🎾 Tenis · 🎯 Dardos · 🎳 Bolos · 🧠 Quiz · 🎤 Karaoke — escaneas el código QR
+con el móvil y ya eres el mando de esa partida, mientras la pantalla grande
+enseña el juego a todos. Agita, apunta, lanza — el mismo gesto de siempre,
+con vuestros propios móviles.
+
+🎤 Y el karaoke: la letra sale en la tele, cantáis por turnos al móvil y os
+puntúa lo bien que afináis. Canciones de siempre, de las que se sabe todo el
+mundo.
 
 POR QUÉ BLOPY
 • Nada de registro ni cuentas — se abre y se juega.
 • Nada de consola ni mandos — el móvil que ya tenéis es suficiente.
+• Hasta ocho a la vez, con un solo QR para toda la sala.
 • Partidas de verdad cortas: perfecto para una espera, un descanso, un rato
   muerto.
 • Sonido y vibración en cada acierto, cada fallo, cada racha.
