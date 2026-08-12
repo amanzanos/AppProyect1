@@ -9,7 +9,7 @@ Blopy: minijuegos rápidos
 ## Descripción breve (máx. 80 caracteres)
 
 ```
-7 minijuegos para tocar y jugar. Reflejos, memoria y puntería en un minuto.
+Como tener una Wii en casa: mueve el móvil, juega en la tele con quien quieras
 ```
 
 ## Descripción completa (máx. 4000 caracteres)
